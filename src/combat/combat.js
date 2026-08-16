@@ -27,7 +27,7 @@ import {
 import { createTelegraphSystem, hudClass, DANGER } from './telegraph.js';
 import {
   initCombatant, resolveDamage, makeOutcome, stepStatus, canAct,
-  grantIframes, notifyDefeat, notifyDamageTaken, DODGE_IFRAMES, PARRY_STAGGER,
+  grantIframes, notifyDefeat, notifyDamageTaken, heal, DODGE_IFRAMES, PARRY_STAGGER,
 } from './damage.js';
 import {
   Enemy, STATE, MOVE_SHAPE, ENEMY_ARCHETYPES, ENEMY_KIND_IDS, archetype,
@@ -241,7 +241,7 @@ export class CombatSystem {
    * @param {number} [tier] 1..4
    * @returns {Enemy}
    */
-  spawnEnemy(kind, x, y, z, tier = 1) {
+  spawnEnemy(kind, x, y, z, tier = 1, opts = undefined) {
     // Resolve the quest/world vocabulary onto a combat archetype, keeping the requested kind
     // as the enemy's questKind so defeat notifications still speak the quest vocabulary.
     const archKind = ENEMY_ARCHETYPES[kind] ? kind : KIND_ALIASES[kind] || null;
@@ -254,7 +254,10 @@ export class CombatSystem {
       const gy = w.heightAt(x, z);
       if (Number.isFinite(gy) && (y === undefined || y < gy)) y = gy + 0.05;
     }
-    const e = new Enemy(archKind || 'thug', x, y, z, tier, this.seed, ++this._actorSeq);
+    // A caller may reserve a fixed actor id (the dockside sparring partner) so the sequence
+    // — and with it every later enemy's per-actor rng stream — is byte-identical either way.
+    const id = opts && opts.id !== undefined ? opts.id : ++this._actorSeq;
+    const e = new Enemy(archKind || 'thug', x, y, z, tier, this.seed, id);
     if (!ENEMY_ARCHETYPES[kind] && typeof kind === 'string') e.questKind = kind;
     e.team = TEAM.ENEMY;
     e.setState(STATE.PATROL);
@@ -540,6 +543,12 @@ export class CombatSystem {
     }
 
     if (o.killed) this._onDeath(target, hit);
+    else if (o.spared) {
+      // The sparring partner concedes the round: drop the bout, rest, come back fresh. The
+      // stagger branch above has already cancelled its telegraph and released its attack.
+      target.target = null;
+      target.sparRestT = 4;
+    }
     return o;
   }
 
@@ -946,19 +955,26 @@ export class CombatSystem {
       if (!p || p.dead) { e.target = null; continue; }
       const d = e.distTo(p.x, p.z);
       const aware = e.state !== STATE.IDLE && e.state !== STATE.PATROL;
+      // The sparring partner sits out of perception while passive (lessons learned), while
+      // resting after a concession, or when kited past its leash — and the aware branch must
+      // honour the same bar, or a staggered bout would re-acquire on the next step.
+      const ai = e.arch.ai;
+      const barred = e.passive || e.sparRestT > 0
+        || (ai.leash !== undefined && e.distTo(e.homeX, e.homeZ) > ai.leash);
       if (!aware) {
-        if (d <= e.aggroRadius && this._canSee(e, p)) {
+        if (!barred && d <= e.aggroRadius && this._canSee(e, p)) {
           e.target = p;
           e.setState(STATE.ALERT);
           e.alertT = e.arch.ai.reaction;
           // Group awareness: allies nearby notice too. Pulling a camp one enemy at a time looks
           // like a bug, and fighting six of them at once is what the token bank is for.
-          this._alertNearby(e, 9);
+          // Solo fighters (the sparring partner) never pull anyone in.
+          if (!ai.solo) this._alertNearby(e, 9);
         }
       } else {
         anyActive = true;
         e.target = p;
-        if (d > e.arch.ai.deaggro) {
+        if (d > e.arch.ai.deaggro || barred) {
           e.target = null;
           e.setState(STATE.PATROL);
           this.bank.release(e);
@@ -973,6 +989,8 @@ export class CombatSystem {
     for (let i = 0; i < this.enemies.length; i++) {
       const o = this.enemies[i];
       if (o === src || o.dead) continue;
+      // Solo fighters neither give nor take group alerts; a passive one takes none either.
+      if (o.arch.ai.solo || o.passive) continue;
       if (o.state !== STATE.IDLE && o.state !== STATE.PATROL) continue;
       if (o.distTo(src.x, src.z) > radius) continue;
       o.target = src.target;
@@ -995,6 +1013,20 @@ export class CombatSystem {
 
     e.stepCooldowns(dt);
     e.checkPhase();
+
+    // Unkillable sparring partner: rest after a concession, snap back to full out of combat.
+    // heal() keeps the "nothing else writes hp" rule (damage.js).
+    if (e.unkillable) {
+      if (e.sparRestT > 0) {
+        e.sparRestT -= dt;
+        if (e.sparRestT <= 0) heal(e, e.maxHp);
+      } else if (!e.target && e.hp < e.maxHp) {
+        e.sparHealT += dt;
+        if (e.sparHealT > 3) { heal(e, e.maxHp); e.sparHealT = 0; }
+      } else if (e.target) {
+        e.sparHealT = 0;
+      }
+    }
     if (e.pendingPhase >= 0) this._runPhaseChange(e);
 
     // Wetness, for the fishman. Rain counts, standing in the sea counts more.

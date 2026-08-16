@@ -277,10 +277,15 @@ export class GameCamera {
     return o.set(Math.sin(this.yaw), 0, Math.cos(this.yaw));
   }
 
-  /** Flat (XZ) right vector of the camera. */
+  /**
+   * Flat (XZ) right vector of the camera — the direction `D` strafes toward.
+   * With yaw = atan2(dx, dz) and forward (sin y, 0, cos y) in this right-handed Y-up world,
+   * right is forward x up = (-cos y, 0, sin y). The sign matters: (cos y, 0, -sin y) is LEFT,
+   * and shipping that exact expression here is what inverted A/D for every player.
+   */
   getRightFlat(out) {
     const o = out || this._right;
-    return o.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    return o.set(-Math.cos(this.yaw), 0, Math.sin(this.yaw));
   }
 
   // -- internals -------------------------------------------------------------

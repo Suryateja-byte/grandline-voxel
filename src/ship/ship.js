@@ -347,6 +347,15 @@ export class ShipSystem {
     if (aboard && input && this.dock.state !== DOCK_STATE.VOYAGE) {
       applyHelmInput(this.body, input, dt);
       if (input.pressed && input.pressed.interact && this.mountLock <= 0) this._interact(app);
+      // The anchor key is the harbour key: cast off from a berth, or dock from an approach.
+      // (castOff existed but nothing called it — before this, no input path could leave the
+      // berth at all; only menu fast-travel undocked.) applyHelmInput's plain anchor toggle
+      // fires on the same press; both transitions re-assert the anchor they need, so the
+      // double action is self-correcting — see beginDock/UNDOCKING in dock.js.
+      if (input.pressed && input.pressed.anchor && this.mountLock <= 0) {
+        if (this.dock.state === DOCK_STATE.DOCKED) { if (this.castOff()) this.mountLock = 0.5; }
+        else if (this.dock.state === DOCK_STATE.APPROACH) { if (this.tryDock()) this.mountLock = 0.5; }
+      }
     }
     // Ashore, interact boards when the player stands at the gangplank. The player's own
     // interact cone offers the same action when the plank is in view; this branch catches a
@@ -532,7 +541,7 @@ export class ShipSystem {
     M.wheel.rotation.z = -body.wheelAngle;
 
     // --- flag: streams downwind, in ship space, with a travelling ripple --------------------
-    const fwd = body.forward(), stb = body.starboard();
+    const fwd = body.forward(), stb = body.lateral();
     const wx = Math.cos(body.windAngle), wz = Math.sin(body.windAngle);
     const localWind = Math.atan2(wx * stb.x + wz * stb.z, wx * fwd.x + wz * fwd.z);
     const gust = Math.sin(t * 3.1) * 0.10 + Math.sin(t * 1.7 + 1.3) * 0.06;

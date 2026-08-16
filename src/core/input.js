@@ -35,6 +35,43 @@ export const DEFAULT_BINDS = {
   swapFruit: ['KeyX'],
 };
 
+/** Display labels for KeyboardEvent.codes that don't reduce to a single letter or digit. */
+export const CODE_LABELS = {
+  Space: 'SPACE', ControlLeft: 'CTRL', ControlRight: 'CTRL',
+  ShiftLeft: 'SHIFT', ShiftRight: 'SHIFT', Escape: 'ESC', Tab: 'TAB',
+  ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT',
+};
+
+/** @param {string} code @returns {string|null} the keycap label for a KeyboardEvent.code */
+export function codeLabel(code) {
+  if (!code) return null;
+  if (CODE_LABELS[code]) return CODE_LABELS[code];
+  let m = /^Key([A-Z])$/.exec(code);
+  if (m) return m[1];
+  m = /^Digit([0-9])$/.exec(code);
+  if (m) return m[1];
+  return String(code).toUpperCase();
+}
+
+/**
+ * The printed keycap for an action — derived from the live binds so the label can never
+ * drift from the binding (the old tutorial hardcoded labels and four of them were wrong).
+ * Pseudo-actions: attack/heavy are hardwired to the mouse buttons (see step() below),
+ * look is the mouse itself, move is the first forward bind.
+ * @param {string} action
+ * @param {{binds?:object}|null} [input] a live Input, anything with .binds, or absent
+ * @returns {string|null}
+ */
+export function capForAction(action, input) {
+  if (action === 'attack') return 'LMB';
+  if (action === 'heavy') return 'RMB';
+  if (action === 'look') return 'MOUSE';
+  const binds = (input && input.binds) || DEFAULT_BINDS;
+  if (action === 'move') return codeLabel((binds.forward || [])[0]) || 'W';
+  const codes = binds[action];
+  return codes && codes.length ? codeLabel(codes[0]) : null;
+}
+
 export class Input {
   constructor() {
     this.keys = new Set();

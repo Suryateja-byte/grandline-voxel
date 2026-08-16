@@ -624,6 +624,71 @@ export const ENEMY_ARCHETYPES = Object.freeze({
       }),
     ],
   },
+
+  // ---------------------------------------------------------------- sparring
+  // The safe trainer at the start island's dock. Telegraphs slowly, cannot kill (nonLethal:
+  // damage floors at 30% of the target's maxHp — damage.js SPAR_FLOOR), cannot die
+  // (unkillable: hp pins at 1 and it concedes the round). questKind 'sparring' is not in
+  // quests.js ENEMY_KINDS, so no objective ever counts it; xp/berries flow only on death,
+  // which never comes. ai.solo keeps it out of group alerts in both directions, ai.leash
+  // keeps it at its post, and blockAware 0 means it will swing into a raised guard — which
+  // is the whole block lesson.
+  sparring: {
+    id: 'sparring',
+    name: 'Sparring Mate',
+    charSpec: 'sparring_mate',
+    questKind: 'sparring',
+    tier: 1,
+    nonLethal: true,
+    unkillable: true,
+    stats: { maxHp: 60, maxPoise: 60, defence: 0, mass: 115, radius: 0.5, height: 2.0 },
+    speed: 2.4,
+    turnRate: 5.0,
+    xp: 0, berries: 0,
+    ai: {
+      aggro: 6, deaggro: 14,
+      reaction: 0.9,
+      preferredMin: 1.8, preferredMax: 3.2,
+      strafeSpeed: 1.0, strafeHold: [1.0, 1.8],
+      repositionChance: 0.1, repositionTime: [0.6, 1.0],
+      fleeHp: 0,
+      blockAware: 0,
+      punishRecovery: 0,
+      tokens: 1,
+      solo: 1,
+      leash: 16,
+      patrolRadius: 1.2,
+    },
+    moves: [
+      move({
+        id: 'jab', shape: MOVE_SHAPE.ARC, range: 2.9, cooldown: 4.0, weight: 3, tokens: 0,
+        telegraph: defineTelegraph({
+          kind: T.ARC, danger: DANGER.BLOCKABLE, growth: GROWTH.FILL, anchor: ANCHOR.SELF,
+          windup: 1.30, sustain: 0.22, radius: 2.4, halfAngle: 0.7, label: 'BLOCK',
+        }),
+        damage: 4, poise: 6, knockback: 1.5, recovery: 1.1, guardCost: 6,
+        reach: 2.4, halfAngle: 0.7, active: 0.12, fxKind: 'blunt', sfx: 'enemy_windup',
+      }),
+      move({
+        id: 'straight', shape: MOVE_SHAPE.LINE, range: 3.1, cooldown: 5.5, weight: 2, tokens: 0,
+        telegraph: defineTelegraph({
+          kind: T.LINE, danger: DANGER.PARRYABLE, growth: GROWTH.FILL, anchor: ANCHOR.SELF,
+          windup: 1.20, sustain: 0.20, radius: 2.6, width: 0.8, label: 'PARRY',
+        }),
+        damage: 5, poise: 8, knockback: 2.0, recovery: 1.0, advance: 0.6,
+        reach: 2.6, width: 0.8, active: 0.10, fxKind: 'blunt', sfx: 'enemy_windup',
+      }),
+      move({
+        id: 'sweep', shape: MOVE_SHAPE.SWEEP, range: 3.4, cooldown: 7.0, weight: 2, tokens: 0,
+        telegraph: defineTelegraph({
+          kind: T.ARC, danger: DANGER.DODGEABLE, growth: GROWTH.SWEEP, anchor: ANCHOR.SELF,
+          windup: 1.40, sustain: 0.24, radius: 3.0, halfAngle: 1.1, label: 'INCOMING',
+        }),
+        damage: 6, poise: 10, knockback: 3.0, recovery: 1.2, advance: 0.6,
+        reach: 3.0, halfAngle: 1.1, active: 0.16, fxKind: 'blunt', sfx: 'enemy_windup',
+      }),
+    ],
+  },
 });
 
 /** Every archetype id, in a fixed order. */
@@ -861,6 +926,14 @@ export class Enemy {
 
     /** Reported to the HUD. Never a placeholder — if it is on screen, it is true. */
     this.aggroRadius = arch.ai.aggro;
+
+    // Sparring-partner fields, declared for every enemy (hidden-class rule above). All
+    // falsy/zero for ordinary archetypes, so nothing downstream changes for them.
+    this.nonLethal = !!arch.nonLethal;
+    this.unkillable = !!arch.unkillable;
+    this.passive = false;      // set by the game when its lessons are learned: stops aggroing
+    this.sparRestT = 0;        // resting after conceding a round; barred from aggro
+    this.sparHealT = 0;        // seconds idle below max hp before snapping back to full
   }
 
   /** Fraction of health remaining. */
@@ -1040,8 +1113,9 @@ export function desiredVelocity(e, dt, out) {
         e.patrolT = e.rng.range(2.5, 5.5);
         e.patrolAngle += e.rng.range(-1.4, 1.4);
       }
-      const tx = e.homeX + Math.sin(e.patrolAngle) * 5.5;
-      const tz = e.homeZ + Math.cos(e.patrolAngle) * 5.5;
+      const pr = ai.patrolRadius !== undefined ? ai.patrolRadius : 5.5;
+      const tx = e.homeX + Math.sin(e.patrolAngle) * pr;
+      const tz = e.homeZ + Math.cos(e.patrolAngle) * pr;
       const dx = tx - e.x, dz = tz - e.z;
       const d = Math.hypot(dx, dz);
       if (d > 0.6) { out.x = (dx / d) * spd * 0.35; out.z = (dz / d) * spd * 0.35; }

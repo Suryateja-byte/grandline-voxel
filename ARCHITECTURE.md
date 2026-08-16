@@ -55,6 +55,13 @@ One owner or it desynchronises.
 ## 3. Coordinate system, units, and vocabulary
 
 - **Y up.** Right-handed. `-Z` is world north. Angles in radians; `yaw = atan2(dx, dz)`.
+- **Forward and right, once and for all.** `forward(yaw) = (sin y, 0, cos y)`;
+  **`right(yaw) = (-cos y, 0, sin y)`** (= forward x up). The tempting `(cos y, 0, -sin y)`
+  is LEFT — that exact expression shipped three independent times (camera strafe basis, ship
+  "starboard", strafe-animation selector) and inverted A/D for every player. Note `yaw+`
+  rotates a heading toward the LEFT/port side (d forward/d yaw = -right). The ship's internal
+  torque cluster is phase-locked to the mirrored lateral axis by design — see
+  `SailingBody.lateral()` — with the screen-direction correction in `applyHelmInput` only.
 - **1 world unit = 1 metre.** A voxel is **0.5 m** for terrain, **0.25 m** for characters
   (so a 14-voxel character is 3.5 m tall — chunky, per ART_BAR §1, and readable at distance).
 - **Sea level is y = 0.** Below zero is underwater.
@@ -113,11 +120,15 @@ frame coherent and it is the difference between "a game" and "a tech demo".
   "crew": [{ "id":"navigator_nami_like", "recruitedAt":123.4 }],
   "quests": { "shellsCove.q1": { "state":"done", "step":3, "counters":{} } },
   "world": { "visited":["shellsCove"], "cleared":["shellsCove.camp1"], "chests":["..."] },
-  "flags": { "tutorialDone": true }
+  "ui": { "v": 2, "tutorial": { "learned": ["look","move"], "skipped": false,
+          "done": false, "undocked": false, "total": 41.3 } }
 }
 ```
 Rules: forward-compatible (unknown keys preserved), never store derived data, never store
-anything reconstructible from the seed.
+anything reconstructible from the seed. `flags.tutorialDone` is DERIVED (re-set every step
+from `ui.tutorial.isDone()`), never stored. The ui slice carries its own `v`: a v1 slice
+(`{i, done}` linear index) is migrated inside `Tutorial.deserialize` — the index maps onto
+the first `i` lessons in table order — without touching the top-level save version.
 
 ## 8. Harness contract (HARNESS owns; everyone depends on it)
 
@@ -230,8 +241,12 @@ The playtest asserts only on these. They must be readable without side effects.
 - `quest | harness | app.quest.{ active[], completed[] }, app.quest.nearestGiver(),
   app.quest.nextObjective() | steps accept-quest and complete-quest. The two lookups let the
   script walk to the giver and the objective with the mouse instead of teleporting.`
-- `ui / core | harness | app.flags.tutorialDone | step tutorial-completes. Save format §7
-  already names this flag; the harness needs it live on the app, not only in the save blob.`
+- `ui / core | harness | app.flags.tutorialDone | step tutorial-completes. Derived from
+  ui.tutorial.isDone() every step (§7). The tutorial is a TRIGGER TABLE, not a queue: each
+  lesson has an arming precondition, `ui.tutorial.current` is the armed lesson on display and
+  may be null when nothing is armed, `ui.tutorial.learned` is the Set of finished lesson ids,
+  and done = all 13 learned or skipped (hold H). Keycaps derive from the input binds
+  (capForAction) — tools/check-tutorial.mjs pins the four labels the old table got wrong.`
 - `save | harness | app.save registered as a system, writing localStorage['glv.save.v1'] per §7,
   and reachable from the pause menu with the bound keys | the save -> reload -> restore round
   trip is an objective gate. The playtest presses Escape and Enter; if saving is only reachable

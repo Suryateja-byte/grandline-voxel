@@ -148,6 +148,60 @@ export class Player extends Actor {
     this.pendingInteract = null;
     super.step(dt, app);
     this._postStep(dt, app);
+    this._rescueIfEnclosed(dt, app);
+  }
+
+  /**
+   * Anti-enclosure rescue. Knockback can park the capsule inside a voxel pocket that walking
+   * can never leave — measured live: a village-brawl knockback pinned a full-health player at
+   * one coordinate for 600 straight seconds, pushing at full wish speed with zero velocity,
+   * kept alive forever by the out-of-combat regen. Every shipped action game carries exactly
+   * this safeguard: if the body is grounded, pushing hard, and not displacing for 2.5 s,
+   * relocate it to the nearest standable pose — straight up first (a missed step-up), then a
+   * ring of one-metre side-steps. Deterministic, runs only while genuinely wedged.
+   */
+  _rescueIfEnclosed(dt, app) {
+    const pushing = this.wishSpeed > 2 && !this.dead && !this.onShip;
+    if (!pushing) { this._wedgeT = 0; this._wedgeAx = undefined; return; }
+    // Anchor on DISPLACEMENT, not instantaneous velocity or groundedness: a wedged player
+    // who keeps hopping (as the playtest driver does, and as frustrated humans do) is
+    // airborne every other moment yet lands in the same half-metre — the first version
+    // gated on `grounded` and provably never fired through the hops.
+    if (this._wedgeAx === undefined) { this._wedgeAx = this.pos.x; this._wedgeAz = this.pos.z; this._wedgeT = 0; }
+    const dx = this.pos.x - this._wedgeAx, dz = this.pos.z - this._wedgeAz;
+    if (dx * dx + dz * dz > 0.36) { this._wedgeAx = this.pos.x; this._wedgeAz = this.pos.z; this._wedgeT = 0; return; }
+    this._wedgeT = (this._wedgeT || 0) + dt;
+    if (this._wedgeT < 3) return;
+    this._wedgeT = 0;
+    this._wedgeAx = undefined;
+    const w = app && app.world;
+    if (!w || typeof w.isSolidAt !== 'function' || typeof w.heightAt !== 'function') return;
+    const r = 0.34;
+    const fits = (x, y, z) => {
+      for (const hy of [0.3, 1.2, 2.1]) {
+        if (w.isSolidAt(x, y + hy, z)) return false;
+        if (w.isSolidAt(x + r, y + hy, z) || w.isSolidAt(x - r, y + hy, z)
+          || w.isSolidAt(x, y + hy, z + r) || w.isSolidAt(x, y + hy, z - r)) return false;
+      }
+      return true;
+    };
+    const tryPose = (x, z) => {
+      const g = w.heightAt(x, z);
+      // Stay in walkable range: no teleporting up cliffs, off ledges, or into the sea.
+      if (!(g > -0.5 && g - this.pos.y < 1.7 && this.pos.y - g < 2.5)) return false;
+      if (!fits(x, g + 0.1, z)) return false;
+      this.pos.x = x; this.pos.y = g + 0.1; this.pos.z = z;
+      this.vel.x = 0; this.vel.y = 0; this.vel.z = 0;
+      return true;
+    };
+    // Up first: the pocket is usually a missed half-step. Then the compass ring.
+    if (fits(this.pos.x, this.pos.y + 0.7, this.pos.z)) { this.pos.y += 0.7; return; }
+    for (const dist of [1.0, 1.6]) {
+      for (let k = 0; k < 8; k++) {
+        const a = k * Math.PI / 4;
+        if (tryPose(this.pos.x + Math.sin(a) * dist, this.pos.z + Math.cos(a) * dist)) return;
+      }
+    }
   }
 
   /**
@@ -206,8 +260,9 @@ export class Player extends Actor {
       cam.getForwardFlat(_fwd);
       cam.getRightFlat(_right);
     } else {
+      // Matches Camera.getRightFlat at yaw 0: facing +Z with +Y up, right is -X.
       _fwd.set(0, 0, 1);
-      _right.set(1, 0, 0);
+      _right.set(-1, 0, 0);
     }
     // input.moveZ is -1 for "forward", matching the key layout in core/input.js.
     const mx = input.moveX || 0, mz = input.moveZ || 0;

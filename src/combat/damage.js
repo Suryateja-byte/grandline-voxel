@@ -55,6 +55,10 @@ export const FREEZE_STACKS = 3;
 export const SHATTER_MULT = 2.15;
 /** Movement multiplier applied to a sand-covered target. */
 export const SAND_SLOW = 0.55;
+/** Fraction of a target's maxHp a nonLethal attacker can never take them below. */
+export const SPAR_FLOOR = 0.30;
+/** Stagger when an unkillable target is 'defeated' — spared, not killed. */
+export const SPAR_BREAK_STAGGER = 1.1;
 
 /**
  * Give an actor the combat fields every resolver here assumes. Called once, at spawn.
@@ -117,6 +121,7 @@ export function makeOutcome() {
     shatter: false,
     staggered: false,
     killed: false,
+    spared: false,        // an unkillable target was 'defeated' — beaten, never dead
     damage: 0,            // damage actually applied to hp
     absorbed: 0,          // damage removed by block
     poiseDamage: 0,
@@ -134,7 +139,7 @@ export function makeOutcome() {
 function resetOutcome(o) {
   o.connected = false; o.dodged = false; o.blocked = false; o.parried = false;
   o.guardBroken = false; o.crit = false; o.shatter = false; o.staggered = false;
-  o.killed = false; o.damage = 0; o.absorbed = 0; o.poiseDamage = 0;
+  o.killed = false; o.spared = false; o.damage = 0; o.absorbed = 0; o.poiseDamage = 0;
   o.element = ELEMENT.NONE; o.reaction = ''; o.target = null; o.source = null;
   o.dirX = 0; o.dirZ = 0; o.px = 0; o.py = 0; o.pz = 0; o.hitstop = 0; o.shake = 0;
   return o;
@@ -328,6 +333,12 @@ export function resolveDamage(target, hit, ctx) {
 
   // --- 7. defence and application ------------------------------------------
   raw = Math.max(1, raw - (target.defence || 0));
+  // A nonLethal attacker (the sparring partner) never takes anyone below the training floor.
+  // Clamping the final number catches crits, backstabs and every multiplier above; at the
+  // floor the hit still connects — feedback, hitstun and poise keep reading correctly.
+  if (src && src.nonLethal) {
+    raw = Math.max(0, Math.min(raw, target.hp - target.maxHp * SPAR_FLOOR));
+  }
   const dmg = raw;
   target.hp -= dmg;
   o.damage = dmg;
@@ -363,11 +374,20 @@ export function resolveDamage(target, hit, ctx) {
 
   // --- 10. death ------------------------------------------------------------
   if (target.hp <= 0) {
-    target.hp = 0;
-    target.dead = true;
-    o.killed = true;
-    o.hitstop = Math.max(o.hitstop, 0.14);
-    o.shake = Math.max(o.shake, 0.34);
+    if (target.unkillable) {
+      // Spared, never killed: pin at 1 hp, stagger hard, and report it so combat can break
+      // the bout off. o.killed stays false — no death path, no kill credit, no rewards.
+      target.hp = 1;
+      target.stagger = Math.max(target.stagger, SPAR_BREAK_STAGGER);
+      o.staggered = true;
+      o.spared = true;
+    } else {
+      target.hp = 0;
+      target.dead = true;
+      o.killed = true;
+      o.hitstop = Math.max(o.hitstop, 0.14);
+      o.shake = Math.max(o.shake, 0.34);
+    }
   }
   return o;
 }

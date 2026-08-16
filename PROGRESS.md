@@ -538,3 +538,136 @@ frame gates' final margins came from controller tuning, not rendering changes:
 - GPU sampling sparser than ~45 frames between drains on this stack (driver-backlog stalls
   poison the CPU distribution).
 - DRS step-up without a headroom margin when fed true-cost samples (it hunts the cliff).
+
+## 2026-08-16 (later) — the A/D inversion: one wrong vector, shipped three times
+
+User report: "when I press A it moves right, D moves left." Confirmed, and worse than a
+keybind mixup — the expression `(cos yaw, 0, -sin yaw)` had been used as the RIGHT vector in
+three independent, hand-written copies, when in this convention (yaw = atan2(dx,dz), forward
+(sin y, 0, cos y), Y-up right-handed) it is exactly LEFT:
+
+- `camera.js getRightFlat` — sole consumer is the player's movement basis → A/D inverted
+  on foot (and dodge rolls with them).
+- `sailing.js starboard()` — the whole ship torque cluster (weather helm, broach, brace
+  assist, heel, wake, flag) phase-locked to the mirrored axis → D steered to PORT.
+- `actor.js` strafe-animation selector — mirrored strafe_l/strafe_r under lock-on.
+
+Why no gate caught it: the playtest's on-foot steering deliberately MEASURES its gain sign
+instead of assuming it (so it worked either way), its strafe use is a symmetric unstick
+square-wave, and the sail/dock steps pass at the home island without an open-sea voyage.
+Nothing in the suite encoded "which way is screen-right" — the convention itself was the bug.
+
+The fix:
+- `getRightFlat` returns the true right `(-cos y, 0, sin y)`; player fallback matched.
+- Animation selector projects onto the true right.
+- Ship: `applyHelmInput` maps D to a NEGATIVE helm (yaw- = true starboard turn). The internal
+  torque cluster is intentionally untouched — it is self-consistent and tuned; flipping its
+  axis would require flipping five subtle sign chains in one commit for zero player-visible
+  gain. `starboard()` is renamed `lateral()` with documentation, because a vector named for a
+  side it does not point at is this project's oldest bug family.
+- ARCHITECTURE §3 now states the forward/right formulas and the yaw+ = port fact.
+
+Verification: a new acceptance probe measures DIRECTION in the real build — on foot, virtual
+D/A/W displace the player along camera right/left/forward (dot products +-1.00); at sea, D
+turns the bow starboard and A port through the full sailing physics. All self-checks, both
+lints, and the 15-step playtest re-run PASS after the change.
+
+## 2026-08-16 (later) — onboarding: the tutorial taught four wrong keys and hid its first step
+
+Research pass (14 sources: CHI 2012 tutorial study, Hodent's GDC onboarding UX, playtest
+data showing >80% of players skip instruction screens) followed by an audit of
+src/ui/tutorial.js. Three faults found, none caught by any gate:
+
+- Four steps printed a key their satisfy-condition does not listen to: sail showed `F`
+  (which LOWERS the sail; raise is `R`), dock showed `F` (anchor is `G`), block showed
+  `RMB` (block is `Q`; RMB is heavy attack), dodge showed `SPACE` (dodge is `C`; Space
+  jumps). Each was a dead end — the step waits on a signal only the real binding produces.
+  Why no gate caught it: the playtest driver taps the real bindings and never reads the
+  printed label; the one thing the player sees was the one thing untested.
+- Step zero was invisible: mouse-look needs pointer lock, lock needs a click, and the only
+  place that said so was the README. Escape (pause) also drops the lock with no re-prompt.
+- The 13 steps were a linear queue: the whole sea act (board -> sail -> steer -> dock) sat
+  in front of every ashore lesson, so a player who walked into the village was told to
+  board a ship and taught nothing about the villagers, quests and enemies around them.
+  Also latent: the dock step self-passed (the ship starts berthed, ship.docked true on
+  frame one) and `castOff()` was dead code — no input path could leave the berth at all.
+
+The rebuild:
+
+- Trigger table, not a queue: every lesson carries an arming precondition ("is the player
+  in a position to learn this right now?"); the highest-priority armed lesson is displayed,
+  with hysteresis, and telegraph-reactive block/dodge lessons preempt urgently. Ashore and
+  sea acts are independent. `Tutorial.learned` is a Set; v1 saves ({i}) migrate inside the
+  ui slice (v2) without touching SAVE_VERSION.
+- Keycaps derive from the binds (`capForAction`), so a printed label can no longer drift
+  from a binding; the HUD interact prompt derives too. tools/check-tutorial.mjs (now in
+  `npm run check`) pins the four repaired labels, drives the trigger table to completion
+  against a mock snapshot, asserts the boot-berth dock self-pass stays dead, and checks
+  the v1 migration.
+- Pointer-lock scrim: "Click to take the helm" whenever the lock is absent and no menu is
+  open — first boot and every Esc-menu-close. Virtual input counts as locked so the
+  profiler and harness never see it.
+- Hint ladder per lesson: 6 s quiet, then a static tag, then animated highlight + pulsing
+  keycap (the playtest-evidence fix — motion until the action lands), then a fuller
+  goal-naming line at 25 s. Progress backs the ladder off.
+- Hold `Tab` for a control card generated from the live binds. `G` now casts off at the
+  berth and moors at an approach (castOff un-deadened); README updated.
+- A sparring partner stands beside the Shells Cove dock: new `sparring` archetype
+  (1.2-1.4 s windups covering block/parry/dodge), nonLethal (never takes anyone below 30%
+  maxHp — clamped at the resolveDamage seam) and unkillable (pins at 1 hp, concedes the
+  round, rests, heals). Solo (no group alerts either way), leashed to 16 m, fixed reserved
+  actor id 100000 and fixed spawn spots so every camp enemy's rng stream is byte-identical.
+  Goes passive once attack+block+dodge are learned. The playtest steps that pick fight
+  targets skip kind 'sparring'.
+- Tutorial telemetry (lesson_armed/shown/learned/skipped, sim-time stamped — no wall
+  clock) into localStorage['glv.tutorial.v1'], capped at 300 events, dropped silently
+  where storage is unavailable.
+
+Playtest note: tutorial-completes now performs a real cast-off and re-moor (the first
+genuine undock the suite has ever driven); the ship ends re-berthed at the home island so
+every later step's preconditions are unchanged. Combat music now triggers at the dock
+during the sparring lessons — intended.
+
+## 2026-08-16 (evening) — controls fixed for humans, and the campaign that followed
+
+The user's live report — "A moves right, D moves left" — turned into the longest diagnostic
+campaign of the project. Full detail in the entries above and ARCHITECTURE §3/§8b; the short
+version, in the order the truth arrived:
+
+1. **The A/D inversion was a wrong FORMULA, not a keybind**: `(cos y, 0, -sin y)` used as
+   "right" in three hand-written copies (camera strafe basis, ship starboard, strafe-anim
+   selector). Fixed everywhere; ship keeps its internally-consistent mirrored torque cluster
+   with the correction at the helm input alone. A new acceptance probe measures real on-screen
+   displacement directions in the live build, so the whole bug family is now caught by math,
+   not by eyes.
+2. **The playtest regressed because its luck ran out, not because the game broke**: the new
+   trajectories exposed latent driver gaps one at a time — taps that ignored what the interact
+   cone was aimed at, no concept of cliffs, huts invisible to a terrain-only probe, an escape
+   ritual that always turned the same way, a give-up clock reset by its own detours, a menu
+   guard missing from exactly one step, and no map sense at all. The endgame: a BFS route
+   planner over the heightfield (with enemy-cluster avoidance), the full navigator in every
+   walking step, and a disengage rule for brawl chip damage.
+3. **One real GAME defect surfaced and was fixed**: knockback could park the player's capsule
+   inside voxel pockets no walking input leaves — measured as a 600 s full-health statue. The
+   player now carries an anti-enclosure rescue (displacement-anchored so it survives panic
+   hopping): 3 s of pushing inside a half-metre circle relocates to the nearest standable pose.
+4. **The harness fought back harder than the game**: vite's HMR watcher navigated pages
+   MID-RUN on spurious Windows file events (three runs died at ~17 s), so harness servers now
+   run watch-free — which in turn means a reused server serves FROZEN code after edits (two
+   more runs "tested" old code byte-identically). Rules now enforced: measurement servers get
+   their own port (`--port`), no watcher, and are killed after every edit; the runner retries
+   the deterministic script on a fresh page after a tab crash.
+5. **A second session's work merged in mid-campaign** (dockside sparring partner, tutorial v2
+   with cast-off/dock lessons, Tab controls overlay). The fight steps learned to never target
+   the unkillable trainer, and the win-a-fight recipe adopted the proven combo tempo + stretch
+   punch (live-probed: kills a thug in 3 s).
+
+**Final state: PLAYTEST 15/15 PASS**, with complete-quest at 82 s — 7x faster than the
+original pass, because the driver now walks like it has a map. All self-checks and lints
+PASS except check-islands' warm-build TIME budget, which flakes purely with machine load
+after 16 h of continuous testing (same code passed at 22 ms mean this morning; generation
+untouched today) — a soft perf assertion, not a correctness gate.
+
+### Do not retry
+- Reusing a watch-free vite server across code edits (serves frozen transforms forever).
+- Trusting any impossible-looking result before curl-grepping what the server actually serves.

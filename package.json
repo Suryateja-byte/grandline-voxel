@@ -15,7 +15,7 @@
     "lint:determinism": "node tools/lint-determinism.mjs",
     "lint:assets": "node tools/lint-assets.mjs",
     "progress": "node tools/progress.mjs",
-    "check": "node tools/check-quests.mjs && node tools/check-charmodel.mjs && node tools/check-islands.mjs"
+    "check": "node tools/check-quests.mjs && node tools/check-charmodel.mjs && node tools/check-islands.mjs && node tools/check-tutorial.mjs"
   },
   "dependencies": {
     "three": "0.185.1"

@@ -696,8 +696,9 @@ export class Actor {
 
     if (this.strafing) {
       // Movement relative to facing decides which of the four directional cycles plays.
+      // r projects velocity onto the TRUE right vector (-cos y, sin y) — see ARCHITECTURE §3.
       const f = Math.sin(this.yaw) * this.vel.x + Math.cos(this.yaw) * this.vel.z;
-      const r = Math.cos(this.yaw) * this.vel.x - Math.sin(this.yaw) * this.vel.z;
+      const r = Math.sin(this.yaw) * this.vel.z - Math.cos(this.yaw) * this.vel.x;
       if (f < -Math.abs(r) * 0.7) return 'backpedal';
       if (Math.abs(r) > Math.abs(f)) return r > 0 ? 'strafe_r' : 'strafe_l';
     }

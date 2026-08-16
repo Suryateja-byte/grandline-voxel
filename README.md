@@ -3,9 +3,12 @@
 A browser-based open-world voxel action game. Sail a Grand Line-scale ocean, fight, use devil
 fruit powers, run quest chains. Three.js + WebGL2, no game engine.
 
+![Island vista at golden hour](evidence/shots/game-island-vista.png)
+
 **Every texture, mesh, animation and sound in this project is generated in code at load time.**
 There are no image, audio, font or model files anywhere in the repository, and
-`npm run lint:assets` fails the build if one appears.
+`npm run lint:assets` fails the build if one appears. (The screenshots in this README are the
+harness's own deterministic captures from `evidence/` — output, not assets.)
 
 ---
 
@@ -45,13 +48,15 @@ npm run build && npm run preview
 | Devil fruit abilities | `1` `2` `3` |
 | Interact / talk / board / dock | `E` |
 | Raise / lower sail | `R` / `F` |
-| Anchor | `G` |
+| Anchor / cast off / dock | `G` |
 | Lock on | `T` |
 | Swap devil fruit | `X` |
 | Map / quests / crew | `M` / `J` / `K` |
 | Pause, save, load, settings | `Esc` |
 
-The first-time flow teaches all of this in play. You do not need this table.
+The first-time flow teaches all of this in play, one lesson at a time, when each control is
+the thing in front of you — and holding `Tab` shows this table in-game, generated from the
+live bindings. Click the canvas once to capture the mouse; the game asks on screen.
 
 ### URL parameters
 
@@ -59,6 +64,70 @@ The first-time flow teaches all of this in play. You do not need this table.
 |---|---|
 | `?seed=20260814` | world seed. The same seed always produces the same world. |
 | `?seed=anything` | text seeds work too; they are hashed. |
+| `?drs=0` | pin native resolution (disables the dynamic-resolution scaler). |
+
+---
+
+## How to play
+
+**Your first ten minutes.** You wake at the dock of **Shells Cove**. The tutorial teaches each
+control the moment you need it — walk, look, fight, board, sail — and gets out of the way. Talk
+to villagers with `E`; anyone with something to say will flag it. The first quest chain starts
+right there in the village.
+
+**Sailing.** Board your ship with `E`, cast off from the berth with `G`, raise the sail with
+`R`, and steer with `A`/`D`. The ocean is real distance — islands are kilometres apart,
+weather rolls through (clear, breezy, squall, storm), and the sea state changes how the ship
+handles. Open the map with `M` to pick a heading. Near an island's dock, lower the sail
+(`F`), glide in, and moor with `G` (or `E`). Your crew is visible on deck as you recruit
+them — they cook, navigate, and fight for you ashore.
+
+**Combat.** Lock on with `T`. Light attacks chain into combos; heavy attacks break guards;
+enemies telegraph their swings, and a dodge (`C`) through a telegraph keeps your combo alive.
+Block with `Q` — tapping it exactly on impact parries. Out of combat you regenerate health
+after a few calm seconds. If you go down, you wake at the nearest safe point; the world doesn't
+reset.
+
+**Devil fruits.** Each landmark island's quest chain ends in a devil fruit — acquiring power
+*is* the progression curve. Six fruits, mechanically distinct, on `1` `2` `3` (swap sets with
+`X`):
+
+| fruit | island chain | what it does |
+|---|---|---|
+| **Gomu** (rubber) | Shells Cove | stretch strikes, gatling flurry, slingshot launch and zip |
+| **Mera** (fire) | Palm Reach | fire pillars, burn damage over time, flame-powered air dashes — rain smothers the flame |
+| **Hie** (ice) | Drum Peaks | freeze enemies solid, ice walls, walkable ice sheets over water |
+| **Gura** (quake) | Emberfall | ground slams, armor-cracking shockwaves, sea-quakes |
+| **Suna** (sand) | Whisper Sands | sandstorms, life drain, burrow under the battlefield |
+| **Zushi** (gravity) | Blossom Terrace | pull enemies in, crush them down, gravity wells |
+
+One warning every pirate learns the hard way: **devil fruit users cannot swim.**
+
+**Bounty and quests.** Quests raise your bounty; your wanted poster (on the `J` journal screen)
+is redrawn as it climbs, and higher bounties change how the world treats you. Chains also
+recruit your crew and hand over map fragments pointing at the next landmark. There are 8
+landmark islands, each hand-authored, plus generated minor islands between them.
+
+**Saving.** `Esc` opens the pause menu — three save slots, stored locally in your browser. A
+save records the seed plus everything you changed; reload restores position, bounty, quests,
+crew, and inventory exactly.
+
+---
+
+## Screenshots
+
+Deterministic captures from the harness — same seed, same pixels, every run.
+
+| | |
+|---|---|
+| ![Approaching an island under sail](evidence/shots/game-island-approach.png) | ![Ashore in the village](evidence/shots/game-island-shore.png) |
+| *Approaching Shells Cove under sail* | *Ashore among the huts* |
+| ![Storm at sea](evidence/shots/game-storm-sea.png) | ![Night island](evidence/shots/game-night-island.png) |
+| *Riding out a storm* | *The island after dark* |
+| ![The hero up close](evidence/shots/char-hero-closeup.png) | ![Character lineup](evidence/shots/char-lineup.png) |
+| *The captain, procedurally modelled and rigged* | *Cast lineup — every character generated in code* |
+| ![Golden hour](evidence/shots/ocean-golden.png) | ![Open ocean at noon](evidence/shots/ocean-noon.png) |
+| *Golden hour on open water* | *Noon, full sail* |
 
 ---
 

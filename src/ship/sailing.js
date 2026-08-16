@@ -200,7 +200,8 @@ export class SailingBody {
     this.sailTarget = 0;
     /** Yard rotation relative to the hull, radians. The rig braces itself to the wind. */
     this.yardAngle = 0;
-    /** Helm, -1 (hard to port) .. +1 (hard to starboard). Holds where you leave it. */
+    /** Helm in the body's internal frame: +1 yaws positive = bow toward screen PORT. The
+     *  player's D (steer starboard) drives it NEGATIVE via applyHelmInput. Holds where left. */
     this.helm = 0;
     /** Wheel rotation for the visual, radians. Geared 1.5 turns lock to lock. */
     this.wheelAngle = 0;
@@ -251,8 +252,19 @@ export class SailingBody {
   /** Unit forward vector in world XZ. yaw = atan2(dx, dz) per ARCHITECTURE §3. */
   forward() { return { x: Math.sin(this.yaw), z: Math.cos(this.yaw) }; }
 
-  /** Unit starboard vector in world XZ. */
-  starboard() { return { x: Math.cos(this.yaw), z: -Math.sin(this.yaw) }; }
+  /**
+   * Unit LATERAL vector in world XZ: the ship model's local +X axis, which on screen is the
+   * PORT side (true starboard is the negation — see ARCHITECTURE §3 for the derivation).
+   * Every yaw/roll torque term, the wake, the flag and the apparent-wind sign convention are
+   * phase-locked to this axis and internally consistent, so it is kept and documented rather
+   * than flipped: the screen-direction correction lives in ONE place, applyHelmInput, where
+   * the player's D is mapped to a negative-helm (true starboard) turn. If you flip this
+   * vector you must flip every consumer's sign in the same commit, or the weather helm,
+   * broach and brace-assist physics all mirror. Renamed from starboard() the day the A/D
+   * inversion was fixed, because a vector named for a side it does not point at is exactly
+   * the "two vocabularies" bug family this project keeps relearning.
+   */
+  lateral() { return { x: Math.cos(this.yaw), z: -Math.sin(this.yaw) }; }
 
   /** Convert a ship-local offset to world space (full yaw/pitch/roll). */
   toWorld(lx, ly, lz, out) {
@@ -346,7 +358,7 @@ export class SailingBody {
     this.windSpeed = weather.wind;
     const fromX = -Math.cos(wa), fromZ = -Math.sin(wa);
     const fwd = this.forward();
-    const stb = this.starboard();
+    const stb = this.lateral();
     // Positive = the wind is on the starboard bow.
     const awaSigned = Math.atan2(fromX * stb.x + fromZ * stb.z, fromX * fwd.x + fromZ * fwd.z);
     this.apparentWindSigned = awaSigned;
@@ -590,7 +602,7 @@ export class SailingBody {
     const sp = this.speed;
     if (sp < 0.45) return;
     const strength = clamp01(sp / 4.2) * (0.55 + this.sailTrim * 0.45);
-    const fwd = this.forward(), stb = this.starboard();
+    const fwd = this.forward(), stb = this.lateral();
     // Stern boil, then the two bow quarter waves that make the V.
     water.addWake(this.pos.x - fwd.x * 9.0, this.pos.z - fwd.z * 9.0, strength);
     if (sp > 1.6) {
@@ -671,8 +683,13 @@ export class SailingBody {
 export function applyHelmInput(body, state, dt) {
   if (!state) return;
   // A/D hold the wheel over; the wheel stays where you left it, like a real helm.
+  // The MINUS is the screen-direction correction: positive body.helm produces positive yaw
+  // torque, and yaw+ rotates the bow toward (cos y, -sin y) — the ship's model-left, screen
+  // PORT. D (moveX +1) must turn the bow to STARBOARD on screen, so it drives helm negative.
+  // The torque cluster below (weather helm, broach, brace) is internally phase-locked to the
+  // same mirrored lateral axis (see SailingBody.lateral) and is deliberately left untouched.
   const steer = state.moveX || 0;
-  if (steer !== 0) body.helm = clamp(body.helm + steer * HELM_RATE * dt, -1, 1);
+  if (steer !== 0) body.helm = clamp(body.helm - steer * HELM_RATE * dt, -1, 1);
   // W/S also trim the sail when aboard, matching src/scenarios.js BINDINGS.
   const trim = -(state.moveZ || 0);
   if (trim !== 0) body.sailTarget = clamp01(body.sailTarget + trim * 0.55 * dt);

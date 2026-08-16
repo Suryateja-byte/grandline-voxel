@@ -12,10 +12,14 @@
 // every time.
 
 import { Rng } from '../core/rng.js';
+import { capForAction, DEFAULT_BINDS } from '../core/input.js';
+import { P, mixHex } from '../gen/palette.js';
 
 import { Hud, blankHudState } from './hud.js';
 import { Menus, MENU, defaultCallbacks } from './menus.js';
 import { Tutorial } from './tutorial.js';
+import { panel, keyCap, scrim } from './draw.js';
+import { drawText, measure } from './font.js';
 
 const MAX_TOASTS = 6;
 const MAX_DAMAGE_NUMBERS = 48;
@@ -55,6 +59,9 @@ export class UISystem {
     this._lastDt = 1 / 60;
     this._listeners = [];
     this._dnSeq = 0;
+    this.controlCardHeld = false;   // Tab held during play shows the full control card
+    this.pointerLocked = true;      // mirrored from the game snapshot; true when absent
+    this.appInputRef = null;        // live Input, for control-card cap derivation
   }
 
   // ---------------------------------------------------------------- lifecycle
@@ -116,6 +123,9 @@ export class UISystem {
     add(cv, 'wheel', (e) => { const [x, y] = local(e); if (this.handlePointer(x, y, 'wheel', e.deltaY)) e.preventDefault(); }, { passive: false });
     add(window, 'keydown', (e) => { if (this.handleKeyDown(e.code)) e.preventDefault(); }, { passive: false });
     add(window, 'keyup', (e) => { this.handleKeyUp(e.code); });
+    // Focus loss never leaves a hold latched: the control card and the tutorial's H-to-skip
+    // both key off "is it down right now", and Alt-Tab eats the keyup.
+    add(window, 'blur', () => { this.controlCardHeld = false; this.tutorial.setSkipHeld(false); });
   }
 
   // ---------------------------------------------------------------- input
@@ -127,6 +137,12 @@ export class UISystem {
   handleKeyDown(code) {
     if (code === 'KeyH' && !this.menus.isOpen && !this.tutorial.isDone()) {
       this.tutorial.setSkipHeld(true);
+      return true;
+    }
+    // Hold Tab for the control card — recognition over recall, permanently available. Only
+    // during play: inside menus Tab keeps its row-move meaning (menus.key below).
+    if (code === 'Tab' && !this.menus.isOpen) {
+      this.controlCardHeld = true;
       return true;
     }
     if (code === 'Escape') {
@@ -150,6 +166,7 @@ export class UISystem {
   /** @returns {boolean} */
   handleKeyUp(code) {
     if (code === 'KeyH') { this.tutorial.setSkipHeld(false); return true; }
+    if (code === 'Tab') { this.controlCardHeld = false; return true; }
     return false;
   }
 
@@ -172,6 +189,7 @@ export class UISystem {
   /** @param {string} name one of MENU.* @returns {boolean} */
   openMenu(name) {
     const ok = this.menus.open(name);
+    this.controlCardHeld = false;   // a card held into a menu would stick under it
     this._syncPointerEvents();
     return ok;
   }
@@ -292,7 +310,14 @@ export class UISystem {
     this.hud.setOption('cbMode', cbMode || 'off');
 
     this.menus.step(d);
+    // Pointer-lock state rides the snapshot; absent (headless callers, demos) means locked.
+    // While unlocked the click-to-play scrim owns the screen and tutorial tags hold back —
+    // the tutorial keeps STEPPING (a scripted run without a real pointer still advances),
+    // only its draw is suppressed.
+    this.pointerLocked = src.pointerLocked !== false;
+    this.appInputRef = (src.app && src.app.input) || null;
     this.tutorial.paused = this.menus.isOpen;
+    this.tutorial.suppress = !this.pointerLocked && !this.menus.isOpen;
     this.tutorial.step(d, src);
   }
 
@@ -305,13 +330,96 @@ export class UISystem {
     ctx.imageSmoothingEnabled = true;
     this.hud.draw(ctx, this.state, this._lastDt);
     if (!this.menus.isOpen) this.tutorial.draw(ctx);
+    if (!this.menus.isOpen && !this.pointerLocked) this._drawClickToPlay(ctx);
+    if (!this.menus.isOpen && this.controlCardHeld) this._drawControlCard(ctx);
     this.menus.draw(ctx);
     ctx.restore();
   }
 
+  /**
+   * The mouse is not captured, so look input is dead — and the browser only grants pointer
+   * lock in response to a click. The single strongest onboarding defect the audit found was
+   * that nothing on screen said so; this scrim is that missing sentence. It reappears every
+   * time the lock drops (Esc menus release it), not just at first boot.
+   */
+  _drawClickToPlay(ctx) {
+    const w = this.w, h = this.h;
+    const sc = Math.max(0.55, Math.min(2.2, Math.min(w / this.opts.refW, h / this.opts.refH)));
+    scrim(ctx, w, h, 0.34);
+    const line = 'Click to take the helm';
+    const sub = 'the mouse steers your eyes • ESC opens the menu';
+    const size = Math.round(26 * sc);
+    const tm = measure(line, size, 'display');
+    const pw = tm.w + Math.round(72 * sc);
+    const ph = Math.round(96 * sc);
+    const px = Math.round(w / 2 - pw / 2);
+    const py = Math.round(h * 0.56);
+    panel(ctx, px, py, pw, ph, { fill: mixHex(P.uiPaper, P.uiGold, 0.16), seed: 0xc11c, amp: 2.4, accent: P.uiGold });
+    drawText(ctx, line, w / 2, py + Math.round(30 * sc), {
+      size, weight: 'display', color: P.uiInk, align: 'center', baseline: 'middle',
+    });
+    drawText(ctx, sub, w / 2, py + Math.round(66 * sc), {
+      size: Math.round(13 * sc), weight: 'body', color: P.uiShadow, align: 'center', baseline: 'middle',
+    });
+  }
+
+  /**
+   * The full control card, held on Tab. Generated from the live binds — never hardcoded —
+   * so a remap shows truthfully, and it can never repeat the old tutorial's wrong-label bug.
+   */
+  _drawControlCard(ctx) {
+    const w = this.w, h = this.h;
+    const sc = Math.max(0.55, Math.min(2.2, Math.min(w / this.opts.refW, h / this.opts.refH)));
+    const input = this.appInputRef || { binds: DEFAULT_BINDS };
+    const GROUPS = [
+      ['MOVE', [['move', 'Walk'], ['look', 'Look'], ['jump', 'Jump'], ['sprint', 'Sprint'], ['dodge', 'Dodge']]],
+      ['FIGHT', [['attack', 'Attack'], ['heavy', 'Heavy attack'], ['block', 'Block / parry'],
+        ['lockOn', 'Lock on'], ['ability1', 'Fruit power'], ['swapFruit', 'Swap fruit']]],
+      ['SAIL', [['interact', 'Board / talk / dock'], ['sailUp', 'Raise sail'], ['sailDown', 'Reef sail'],
+        ['anchor', 'Anchor / cast off']]],
+      ['WORLD', [['map', 'Map'], ['quests', 'Quests'], ['crew', 'Crew'], ['pause', 'Pause / save']]],
+    ];
+    scrim(ctx, w, h, 0.4);
+    const colW = Math.round(300 * sc);
+    const rowH = Math.round(34 * sc);
+    const headH = Math.round(40 * sc);
+    const leftRows = GROUPS[0][1].length + GROUPS[1][1].length + 2;   // two groups per column
+    const rightRows = GROUPS[2][1].length + GROUPS[3][1].length + 2;
+    const bodyH = Math.max(leftRows, rightRows) * rowH + 2 * headH;
+    const pw = colW * 2 + Math.round(90 * sc);
+    const ph = bodyH + Math.round(110 * sc);
+    const px = Math.round(w / 2 - pw / 2);
+    const py = Math.round(h / 2 - ph / 2);
+    panel(ctx, px, py, pw, ph, { fill: P.uiPaper, seed: 0x7ab5, amp: 2.8, accent: P.uiGold });
+    drawText(ctx, 'CONTROLS', w / 2, py + Math.round(34 * sc), {
+      size: Math.round(22 * sc), weight: 'display', color: P.uiInk, align: 'center', baseline: 'middle',
+    });
+    const colX = [px + Math.round(36 * sc), px + colW + Math.round(60 * sc)];
+    const columns = [[GROUPS[0], GROUPS[1]], [GROUPS[2], GROUPS[3]]];
+    for (let c = 0; c < 2; c++) {
+      let y = py + Math.round(64 * sc);
+      for (const [title, rows] of columns[c]) {
+        drawText(ctx, title, colX[c], y + headH / 2, {
+          size: Math.round(13 * sc), weight: 'display', color: P.uiGold, baseline: 'middle',
+        });
+        y += headH;
+        for (const [action, label] of rows) {
+          const cap = capForAction(action, input) || '?';
+          const capRect = keyCap(ctx, colX[c], y + Math.round(3 * sc), cap, { size: Math.round(12 * sc) });
+          drawText(ctx, label, colX[c] + Math.max(capRect.w + Math.round(12 * sc), Math.round(64 * sc)),
+            y + rowH / 2, { size: Math.round(14 * sc), weight: 'body', color: P.uiInk, baseline: 'middle' });
+          y += rowH;
+        }
+      }
+    }
+    drawText(ctx, 'release TAB to close', w / 2, py + ph - Math.round(22 * sc), {
+      size: Math.round(11 * sc), weight: 'body', color: P.uiShadow, align: 'center', baseline: 'middle',
+    });
+  }
+
   /** ARCHITECTURE §5: every system implements serialize()/deserialize(). */
   serialize() {
-    return { v: 1, tutorial: this.tutorial.serialize() };
+    return { v: 2, tutorial: this.tutorial.serialize() };
   }
 
   deserialize(o) {

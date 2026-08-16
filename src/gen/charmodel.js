@@ -1420,6 +1420,21 @@ export const CHARACTER_SPECS = {
     extra: 'beard',
     pose: { armL: [-0.10, 0.14], armR: [-0.50, -0.36], legL: [0.10, 0.06], legR: [-0.08, -0.06], lean: 0.26, headTilt: 0.22 },
   },
+
+  // The dockside sparring partner: brute-class bulk in villager dress. Green-and-gold — no
+  // hostile wears these colours — bare fists, and a boxer's guard with a grin, so the
+  // silhouette reads friendly at the same glance that reads a thug as trouble.
+  sparring_mate: {
+    id: 'sparring_mate', name: 'Dockside Sparring Mate', faction: 'villager',
+    build: { h: 18, torsoW: 6, armW: 3, longArms: true },
+    skin: skinTan,
+    hair: { color: P.hairBrown, style: 'short' },
+    ident: { kind: 'headscarf', color: P.grassCold, alt: P.heroGold },
+    cloth: cloth({ top: P.rope, topAlt: P.grassCold, pants: P.plankDark, sash: P.heroGold, sleeve: 'none', openFront: true, worn: true, boot: P.plankDark }),
+    face: { eye: 'happy', mouth: 'grin' },
+    weapon: null,
+    pose: { armL: [-0.50, 0.80], armR: [-0.50, -0.80], legL: [0.06, 0.24], legR: [-0.06, -0.24], lean: -0.04, headTilt: 0.05 },
+  },
 };
 
 /** Stable iteration order for tools and lineup shots. */

@@ -11,7 +11,7 @@
 // instead of a blank screen.
 
 import * as THREE from 'three';
-import { Input } from './core/input.js';
+import { Input, capForAction } from './core/input.js';
 import { createSaveSystem } from './core/save.js';
 import { buildBlocks } from './gen/blocks.js';
 
@@ -254,6 +254,55 @@ export async function buildGameSystems(app) {
     };
   }
 
+  // --- dockside sparring partner ------------------------------------------------------------
+  // A safe trainer beside the start island's dock, so the tutorial's attack/block/dodge
+  // lessons happen against slow telegraphs, a damage floor and an opponent who cannot die —
+  // instead of against whatever patrol wanders past a player still learning to walk.
+  // Deterministic: fixed reserved actor id (no _actorSeq bump, so every camp enemy's rng
+  // stream is byte-identical with or without him) and fixed candidate spots, no rng draws.
+  // Re-ensured every step so he survives any future enemy-clearing path.
+  if (made.combat && made.world && LANDMARKS) {
+    const SPAR_ID = 100000;
+    const SPAR_SPOTS = [[3, 34], [6, 31], [0, 31], [8, 28]];   // local metres, fixed order
+    made.sparring = {
+      step(dt, a) {
+        const c = a.combat;
+        if (!c) return;
+        let spar = a._sparring && !a._sparring.removed ? a._sparring : null;
+        if (!spar) {
+          for (const e of c.enemies) { if (e.kind === 'sparring' && !e.removed) { spar = e; break; } }
+        }
+        if (!spar) {
+          const start = LANDMARKS.find((l) => l.id === (a.startIsland || 'shellsCove'));
+          if (!start || !a.world || typeof a.world.heightAt !== 'function') return;
+          for (const [lx, lz] of SPAR_SPOTS) {
+            const x = start.worldPos[0] + lx, z = start.worldPos[1] + lz;
+            const y = a.world.heightAt(x, z);
+            if (Number.isFinite(y) && y > 0.8) {
+              spar = c.spawnEnemy('sparring', x, y, z, 1, { id: SPAR_ID });
+              break;
+            }
+          }
+          if (!spar) return;
+        }
+        a._sparring = spar;
+        // Passive once attack, block and dodge are all learned (or the whole tutorial is
+        // done/skipped): stops aggroing, idles at his post, stays as dockside flavour.
+        const tut = a.ui && a.ui.tutorial;
+        const learned = tut && tut.learned;
+        const done = (learned && learned.has('attack') && learned.has('block') && learned.has('dodge'))
+          || !!(a.flags && a.flags.tutorialDone);
+        if (done && !spar.passive) {
+          spar.passive = true;
+          spar.target = null;
+          if (spar.setState) spar.setState('patrol');
+        } else if (!done && spar.passive) {
+          spar.passive = false;
+        }
+      },
+    };
+  }
+
   app.save = createSaveSystem(app);
 
   // --- registration, in the fixed step order from ARCHITECTURE §4 -------------
@@ -262,7 +311,7 @@ export async function buildGameSystems(app) {
   // every hitbox and projectile resolves against. Unstepped, the hash stays empty and no
   // attack in the game can connect with anything.
   const STEP_ORDER = [
-    'player', 'respawn', 'fruit', 'combat', 'npc', 'ship', 'world', 'spawn',
+    'player', 'respawn', 'sparring', 'fruit', 'combat', 'npc', 'ship', 'world', 'spawn',
     'weather', 'physics', 'fx', 'quests', 'gameCamera', 'ui', 'audio', 'save',
   ];
   for (const name of STEP_ORDER) {
@@ -518,11 +567,14 @@ function buildUiState(app, ui) {
     } catch {}
   }
   hud.compass = { yaw, markers };
+  // The prompt's keycap is derived from the live binds, same as the tutorial's — a label
+  // that cannot drift from the binding.
+  const interactCap = capForAction('interact', app.input) || 'E';
   if (p && p.interactTarget) {
-    hud.prompt = { key: 'E', label: p.interactTarget.label || p.interactTarget.prompt || 'Interact' };
+    hud.prompt = { key: interactCap, label: p.interactTarget.label || p.interactTarget.prompt || 'Interact' };
   } else if (p && !p.onShip && app.ship && app.ship.docked
     && typeof app.ship.canBoard === 'function' && app.ship.canBoard(p.pos)) {
-    hud.prompt = { key: 'E', label: 'Board ship' };
+    hud.prompt = { key: interactCap, label: 'Board ship' };
   }
   hud.onShip = !!(p && p.onShip);
   hud.weather = app.weatherKey;
@@ -568,7 +620,12 @@ function buildUiState(app, ui) {
     shipState = { sail: ship.body.sailTrim || 0, distToMarker, docked: !!ship.docked };
   }
 
-  return { hud, onShip: hud.onShip, signals: sig, ship: shipState, app };
+  // Virtual (scripted) input counts as locked: the profiler and harness never hold a real
+  // pointer lock, and the click-to-play scrim would be a lie in front of them.
+  return {
+    hud, onShip: hud.onShip, signals: sig, ship: shipState, app,
+    pointerLocked: !!(app.input && (app.input.pointerLocked || app.input.virtual)),
+  };
 }
 
 /** Point the menus at the real systems: real saves, real settings, real fruits and crew. */

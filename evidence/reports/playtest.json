@@ -24,16 +24,16 @@
       "id": "tutorial-completes",
       "desc": "the opening tutorial can be finished with the controls it teaches",
       "status": "pass",
-      "simSeconds": 35.53,
-      "simSteps": 2132,
+      "simSeconds": 50.68,
+      "simSteps": 3041,
       "note": ""
     },
     {
       "id": "board-ship",
       "desc": "walk to the ship and board it with the interact key",
       "status": "pass",
-      "simSeconds": 4.03,
-      "simSteps": 242,
+      "simSeconds": 0.82,
+      "simSteps": 49,
       "note": ""
     },
     {
@@ -64,16 +64,16 @@
       "id": "enter-combat",
       "desc": "find a fight",
       "status": "pass",
-      "simSeconds": 20.92,
-      "simSteps": 1255,
+      "simSeconds": 71.53,
+      "simSteps": 4292,
       "note": ""
     },
     {
       "id": "win-a-fight",
       "desc": "win the fight without dying",
       "status": "pass",
-      "simSeconds": 7.57,
-      "simSteps": 454,
+      "simSeconds": 11.63,
+      "simSteps": 698,
       "note": ""
     },
     {
@@ -96,8 +96,8 @@
       "id": "complete-quest",
       "desc": "complete the accepted quest",
       "status": "pass",
-      "simSeconds": 561.63,
-      "simSteps": 33698,
+      "simSeconds": 82.43,
+      "simSteps": 4946,
       "note": ""
     },
     {
@@ -134,8 +134,8 @@
   ],
   "skipped": [],
   "failed": [],
-  "simSeconds": 630.46,
-  "wallSeconds": 649.4,
+  "simSeconds": 217.87,
+  "wallSeconds": 231.6,
   "consoleErrors": [],
   "inputPolicy": "real KeyboardEvent / MouseEvent / WheelEvent dispatched at the game canvas; no gameplay function is called directly"
 }

@@ -54,45 +54,198 @@ function readSave(slot) {
 
 /** How many quests are DONE, read through the public journal. */
 /**
+ * Coarse route plan over the terrain heightfield: BFS on a 2 m grid, walkable = above the
+ * tideline and no step over 2.2 m between neighbouring cells. This is the driver's MAP
+ * sense — eight measured runs proved that no amount of local veer/escape ritual can cross
+ * the village's hut-and-grove belt reliably: reactive navigation walks into concave pockets
+ * faster than any unstick can drain them. A human reads the terrain and routes around; so
+ * does this. Returns [[x,z], ...] from start to (as near as reachable to) the target.
+ */
+function planRoute(app, sx, sz, tx, tz, avoid) {
+  if (!app.world || typeof app.world.heightAt !== 'function') return null;
+  const C = 2, MAX_POPS = 24000;
+  // Cells within 6 m of an avoid-point (live enemies) are unwalkable: the driver's route
+  // steers AROUND standing brawls instead of tanking through them. If the target itself
+  // sits inside a brawl the partial-route fallback still walks to its edge.
+  const av = avoid && avoid.length ? avoid : null;
+  const blocked = (wx, wz) => {
+    if (!av) return false;
+    for (let i = 0; i < av.length; i++) {
+      const dx = wx - av[i].x, dz = wz - av[i].z;
+      if (dx * dx + dz * dz < 36) return true;
+    }
+    return false;
+  };
+  const h = (x, z) => app.world.heightAt(x, z);
+  const k2 = (cx, cz) => cx + ',' + cz;
+  const hCache = new Map();
+  const hOf = (cx, cz) => {
+    const k = k2(cx, cz);
+    if (hCache.has(k)) return hCache.get(k);
+    const v = h(cx * C, cz * C);
+    hCache.set(k, v);
+    return v;
+  };
+  const sx0 = Math.round(sx / C), sz0 = Math.round(sz / C);
+  const tx0 = Math.round(tx / C), tz0 = Math.round(tz / C);
+  const from = new Map([[k2(sx0, sz0), null]]);
+  let q = [[sx0, sz0]];
+  let best = [sx0, sz0];
+  let bestD = Math.hypot(sx0 - tx0, sz0 - tz0);
+  let pops = 0, found = false;
+  while (q.length && pops < MAX_POPS && !found) {
+    const next = [];
+    for (const [cx, cz] of q) {
+      if (++pops > MAX_POPS) break;
+      const hc = hOf(cx, cz);
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, nz = cz + dz;
+        const nk = k2(nx, nz);
+        if (from.has(nk)) continue;
+        const hn = hOf(nx, nz);
+        if (!(hn > -0.5 && Math.abs(hn - hc) <= 2.2)) continue;
+        if (blocked(nx * C, nz * C)) continue;
+        from.set(nk, k2(cx, cz));
+        const d = Math.hypot(nx - tx0, nz - tz0);
+        if (d < bestD) { bestD = d; best = [nx, nz]; }
+        if (nx === tx0 && nz === tz0) { found = true; best = [nx, nz]; break; }
+        next.push([nx, nz]);
+      }
+      if (found) break;
+    }
+    q = next;
+  }
+  // Reconstruct from the closest reachable cell — partial routes still beat crow-flies.
+  const path = [];
+  let cur = k2(best[0], best[1]);
+  while (cur) {
+    const [cx, cz] = cur.split(',').map(Number);
+    path.push([cx * C, cz * C]);
+    cur = from.get(cur);
+  }
+  path.reverse();
+  return path.length > 1 ? path : null;
+}
+
+/**
  * Obstacle-aware walk used by the quest-runner branches. Aim at the target, veer to stay on
  * walkable ground (a devil-fruit user must not march into the sea), hop periodically, and
  * strafe out when position stops changing. Returns the distance to the target.
  */
 function walkTowards(api, app, steerTo, pp, tx, tz, t, ctx) {
-  let aim = Math.atan2(tx - pp.x, tz - pp.z);
+  // Route sense first: aim at the next BFS waypoint, not the crow-flies bearing. The local
+  // probe/veer/escape below stays as the reactive layer for what the 2 m grid cannot see.
+  let ax = tx, az = tz;
+  if (ctx && dist2d(pp, { x: tx, z: tz }) > 10) {
+    const rkey = Math.round(tx / 3) + ',' + Math.round(tz / 3);
+    if (ctx._routeKey !== rkey || (t - (ctx._routeT ?? -99)) > 12) {
+      ctx._routeKey = rkey; ctx._routeT = t;
+      const avoid = [];
+      if (app.enemies && typeof app.enemies.list === 'function') {
+        for (const e of app.enemies.list()) {
+          if (!e.dead && dist2d(pp, e) < 70) avoid.push({ x: e.x, z: e.z });
+        }
+      }
+      ctx._route = planRoute(app, pp.x, pp.z, tx, tz, avoid);
+      ctx._routeI = 0;
+    }
+    const rt = ctx._route;
+    if (rt && rt.length) {
+      if (ctx._routeI >= rt.length) ctx._routeI = rt.length - 1;
+      while (ctx._routeI < rt.length - 1
+        && dist2d(pp, { x: rt[ctx._routeI][0], z: rt[ctx._routeI][1] }) < 4) ctx._routeI++;
+      let j = ctx._routeI;
+      while (j + 1 < rt.length && dist2d(pp, { x: rt[j + 1][0], z: rt[j + 1][1] }) < 10) j++;
+      ax = rt[j][0]; az = rt[j][1];
+    }
+  }
+  let aim = Math.atan2(ax - pp.x, az - pp.z);
   // Escalating escape. The alternate-strafe unstick handles a wall; it cannot escape a doorway
   // pocket or building corner — the driver sat wedged at the same village coordinate for four
   // consecutive full-budget runs. After three stuck seconds, commit to walking AWAY along a
   // rotated heading for two seconds before re-approaching; the detour breaks the pocket.
   if (ctx) {
-    if (ctx._wesc === undefined) { ctx._wesc = 0; ctx._wstuckT = 0; }
+    if (ctx._wesc === undefined) { ctx._wesc = 0; ctx._wstuckT = 0; ctx._wescN = 0; }
     if (ctx._wesc > 0) {
       ctx._wesc -= 1 / 60;
-      aim += 2.4;                          // committed detour heading
+      aim += ctx._wescAim || 2.4;          // committed detour heading
     } else if (ctx._wstuck) {
       ctx._wstuckT += 1 / 60;
-      if (ctx._wstuckT > 3) { ctx._wesc = 2.0; ctx._wstuckT = 0; }
+      if (ctx._wstuckT > 3) {
+        // Escape order matters. FIRST attempt: straight back out (+pi) — a wedge between
+        // palm trunks is open exactly the way the driver walked in (measured: pushes at the
+        // grove wedge moved 2.1 m north, 0 m south/east). Later attempts cycle varied
+        // side-headings so a genuine pocket still gets explored.
+        const k = ctx._wescN = (ctx._wescN || 0) + 1;
+        ctx._wescAim = k === 1 ? Math.PI : [2.4, -2.4, 3.0, -1.7, 1.2, -3.0][k % 6];
+        ctx._wesc = 2.0 + (k % 3) * 0.8;
+        ctx._wstuckT = 0;
+      }
     } else {
       ctx._wstuckT = 0;
     }
   }
+  // A heading is walkable when the ground 4 m out is neither water NOR a cliff. The water
+  // rule always existed; the cliff rule was learned the hard way: three of the five quest
+  // floats sit up hillsides (measured: item heights 4-9.5 m amid 10-14.5 m ridges), and a
+  // probe that only fears the sea marched face-first into rock walls for three full runs.
+  // Near the target, wadeable shallows are accepted so a tideline pickup stays reachable.
+  const dToTarget = dist2d(pp, { x: tx, z: tz });
+  const hMin = dToTarget < 14 ? -0.75 : 0.2;
+  const py = pp.y || 0;
+  const hAt = (x, z) => (app.world && app.world.heightAt ? app.world.heightAt(x, z) : 1);
+  // The heightfield already contains every obstacle that matters — hut roofs, palm trunks,
+  // ridges — because heightAt returns the TOPMOST solid voxel. What defeated the driver was
+  // RESOLUTION: one sample 4 m out let 1 m-wide palm trunks 2 m away slip between probes,
+  // and the capsule wedged between adjacent trees (measured: the village's south grove reads
+  // 3 -> 9.5 -> 3 m across adjacent metre samples). Probe three distances along the heading,
+  // never sampling past the target itself (a shoreline pickup must not be vetoed by the deep
+  // water BEHIND it).
   const probe = (a) => {
-    const h = app.world && app.world.heightAt
-      ? app.world.heightAt(pp.x + Math.sin(a) * 4, pp.z + Math.cos(a) * 4) : 1;
-    return h > 0.2;
+    const sx = Math.sin(a), cx = Math.cos(a);
+    for (const pd of [1.6, 3.0, 4.4]) {
+      if (pd > dToTarget + 0.5) break;
+      const h = hAt(pp.x + sx * pd, pp.z + cx * pd);
+      if (!(h > hMin && h - py < 2.75)) return false;
+    }
+    return true;
   };
   if (!probe(aim)) {
-    const sgn = Math.floor(t / 6) % 2 === 0 ? 1 : -1;
-    for (let k = 1; k <= 5; k++) {
-      if (probe(aim + sgn * k * 0.5)) { aim += sgn * k * 0.5; break; }
-      if (k === 5) aim += Math.PI;
+    // The veer SIDE is sticky per journey. It used to flip on global time every 6 s — on a
+    // shoreline detour longer than 6 s (the cove between the village and the far floats) the
+    // flip reversed the walk mid-detour and the driver pendulumed on the beach for the whole
+    // budget (measured three runs: 46k collect steps, 2-3 taps). Pick the side that clears
+    // with the smallest deflection once, keep it until the target changes.
+    // Steps of 0.35 rad: at probe range that is ~1.4 m of lateral resolution, fine enough to
+    // thread the gaps between grove trunks that 0.5 rad steps jumped straight over.
+    if (ctx) {
+      const vkey = Math.round(tx) + ',' + Math.round(tz);
+      if (ctx._veerKey !== vkey) { ctx._veerKey = vkey; ctx._veerSgn = 0; }
+      if (!ctx._veerSgn) {
+        ctx._veerSgn = 1;
+        for (let k = 1; k <= 8; k++) {
+          if (probe(aim + k * 0.35)) { ctx._veerSgn = 1; break; }
+          if (probe(aim - k * 0.35)) { ctx._veerSgn = -1; break; }
+        }
+      }
     }
+    const sgn = ctx && ctx._veerSgn ? ctx._veerSgn : 1;
+    let cleared = false;
+    for (let k = 1; k <= 8; k++) {
+      if (probe(aim + sgn * k * 0.35)) { aim += sgn * k * 0.35; cleared = true; break; }
+    }
+    if (!cleared) aim += Math.PI;
   }
   steerTo(api, pp.x + Math.sin(aim) * 10, pp.z + Math.cos(aim) * 10);
   const d = dist2d(pp, { x: tx, z: tz });
   api.set('moveForward', d > 2.0);
   api.set('sprint', d > 20);
-  if ((t % 1.6) < 0.06) api.tap('jump');
+  // Voxel slopes are stairs: when the ground just ahead is a step up, jump at climb tempo
+  // instead of the idle hop cadence.
+  const aheadH = app.world && app.world.heightAt
+    ? app.world.heightAt(pp.x + Math.sin(aim) * 2, pp.z + Math.cos(aim) * 2) : 0;
+  if (aheadH - py > 0.6) { if ((t % 0.5) < 0.06) api.tap('jump'); }
+  else if ((t % 1.6) < 0.06) api.tap('jump');
   // Stuck detection: under half a metre of movement in a second means strafe free.
   if (ctx) {
     if (ctx._wpos === undefined || t - (ctx._wt || 0) > 1.0) {
@@ -200,14 +353,18 @@ export const STEPS = [
     desc: 'the opening tutorial can be finished with the controls it teaches',
     requires: ['flags'], timeoutS: 240,
     failure: 'tutorial-completes: flags.tutorialDone never became true while the script performed '
-      + 'each action the tutorial teaches (look, walk, board, sail, fight, talk, quest, map)',
+      + 'each action the tutorial teaches (look, walk, fight, talk, quest, board, sail, '
+      + 'cast off, dock, map)',
     drive(t, ctx) {
       const { api, app, steerTo } = ctx;
-      // Perform what the CURRENT tutorial step teaches — the tutorial watches state, so the
+      // Perform what the CURRENT tutorial lesson teaches — the tutorial watches state, so the
       // only honest way to finish it is to actually do each thing with real input events.
+      // The tutorial is a trigger table: `current` is the armed lesson being displayed, and
+      // may be null when nothing is armed — the fallback below then CREATES the arming
+      // condition for the highest-priority gap (walk near an NPC, aggro the sparring
+      // partner, board the ship) so the next lesson can fire.
       const tut = app.ui && app.ui.tutorial;
       const cur = tut && tut.current;
-      if (!cur) return;
       const p = app.player;
       const pp = posOf(p);
       // The village NPCs stand on authored flat ground — the one reliably walkable anchor near
@@ -269,6 +426,63 @@ export const STEPS = [
         }
         if (bd < 3.6 && (t % 0.8) < 0.1) api.tap('interact');
       };
+      // Stand toe to toe with the dockside sparring partner so the combat lessons have a
+      // live opponent: block/dodge arm off his telegraphs (hud.target). Returns true when
+      // in sparring range.
+      const seekSparring = () => {
+        let spar = null;
+        for (const e of (app.combat && app.combat.enemies) || []) {
+          if (e.kind === 'sparring' && !e.dead) { spar = e; break; }
+        }
+        if (!spar) return true;                       // no partner: swing at air, as before
+        const d = dist2d(pp, spar);
+        if (d > 2.4) { steerTo(api, spar.x, spar.z); api.set('moveForward', true); return false; }
+        api.set('moveForward', false);
+        return true;
+      };
+      // The home berth, for the sea act's steer/dock legs.
+      const homeDock = () => {
+        const near = app.ship && app.ship.dock && app.ship.dock.nearIsland;
+        const isl = near || firstIsland(app);
+        if (!isl) return null;
+        if (isl.worldPos && isl.dockPos) {
+          return { x: isl.worldPos[0] + isl.dockPos[0], z: isl.worldPos[1] + isl.dockPos[1] };
+        }
+        return { x: isl.x !== undefined ? isl.x : 0, z: isl.z !== undefined ? isl.z : 0 };
+      };
+      const lp = (id) => !!(tut && tut.learned && tut.learned.has(id));
+
+      if (!cur) {
+        // Nothing armed. Create the arming condition for the biggest gap, highest priority
+        // first — mirroring the tutorial's own ordering so the driver and the display agree.
+        if (!lp('look')) { api.look(26, 9); return; }
+        if (!lp('move')) {
+          const a = npcAnchor();
+          if (a) steerTo(api, a.pos.x + Math.sin(t * 0.7) * 4, a.pos.z + Math.cos(t * 0.7) * 4);
+          api.set('moveForward', true);
+          return;
+        }
+        if ((!lp('talk') || !lp('quest')) && ashore()) { seekNpc(!lp('quest') && lp('talk')); return; }
+        if ((!lp('attack') || !lp('block') || !lp('dodge') || !lp('fruit'))) {
+          if (ashore()) seekSparring();               // aggro him: block/dodge arm off his swings
+          return;
+        }
+        if (!lp('board') || !lp('sail') || !lp('steer') || !lp('dock')) {
+          if (!p.onShip) {
+            const bp = app.ship && typeof app.ship.boardingPoint === 'function'
+              ? app.ship.boardingPoint() : posOf(app.ship);
+            if (bp) steerTo(api, bp.x, bp.z);
+            api.set('moveForward', true);
+            if ((t % 1.7) < 0.06) api.tap('jump');
+            if ((t % 0.7) < 0.1) api.tap('interact');
+          } else {
+            api.set('moveForward', false);
+            if ((app.ship.body.sailTrim || 0) < 0.5 && (t % 0.9) < 0.05) api.tap('sailUp');
+          }
+          return;
+        }
+        return;                                       // map arms off quest; nothing to force
+      }
       switch (cur.id) {
         case 'look': api.look(26, 9); break;
         case 'move': {
@@ -294,12 +508,45 @@ export const STEPS = [
           break;
         }
         case 'sail': { api.set('moveForward', false); if ((t % 0.9) < 0.05) api.tap('sailUp'); break; }
-        case 'steer': api.set('moveForward', true); break;   // berthed at the home island: the marker is in range
-        case 'dock': break;                                  // moored — ship.docked is already true
-        case 'attack': { if (!ashore()) break; if ((t % 0.7) < 0.05) api.tap('lightAttack'); break; }
-        case 'block': { if (!ashore()) break; api.set('block', (t % 1.8) < 1.1); break; }
+        case 'steer': {
+          // Under sail. At the berth the marker is already in range; at sea, aim the helm at
+          // the home dock so the distance-to-marker delta accumulates.
+          const hd = homeDock();
+          if (hd) steerTo(api, hd.x, hd.z);
+          api.set('moveForward', true);
+          break;
+        }
+        case 'dock': {
+          // The harbour round trip. Phase 1 (still berthed): G casts off. Phase 2 (at sea):
+          // reef below the dock gate's speed limit, hold the approach, G moors.
+          const d = app.ship.dock;
+          if (!(tut.flags && tut.flags.undocked)) {
+            api.set('moveForward', false);
+            if ((t % 1.2) < 0.06) api.tap('anchor');            // cast off
+            break;
+          }
+          const hd = homeDock();
+          if (hd) steerTo(api, hd.x, hd.z);
+          api.set('moveForward', false);
+          if (app.ship.body.speed > 2.6 && (t % 0.5) < 0.06) api.tap('sailDown');
+          if (d.state === 'approach' && app.ship.body.speed < 3.0 && (t % 0.8) < 0.1) api.tap('anchor');
+          break;
+        }
+        case 'attack': {
+          if (!ashore()) break;
+          if (!seekSparring()) break;
+          if ((t % 0.7) < 0.05) api.tap('lightAttack');
+          break;
+        }
+        case 'block': {
+          if (!ashore()) break;
+          seekSparring();
+          api.set('block', (t % 1.8) < 1.1);
+          break;
+        }
         case 'dodge': {
           if (!ashore()) break;
+          seekSparring();
           api.set('block', false);
           if ((t % 1.1) < 0.06) api.tap('dodge');
           break;
@@ -395,12 +642,14 @@ export const STEPS = [
       let tp = null;
       const threat = app.combat && typeof app.combat.nearestThreat === 'function'
         ? app.combat.nearestThreat() : null;
-      if (threat && threat.actor) tp = threat.actor;
+      // The dockside sparring partner never counts as a fight: passive post-tutorial, and
+      // unkillable regardless — walking at him can never set combat.active.
+      if (threat && threat.actor && threat.actor.kind !== 'sparring') tp = threat.actor;
       if (!tp && app.enemies && typeof app.enemies.list === 'function') {
         const pp = posOf(app.player);
         let bd = 1e9;
         for (const e of app.enemies.list()) {
-          if (e.dead) continue;
+          if (e.dead || e.kind === 'sparring') continue;
           const d = dist2d(pp, e);
           if (d < bd) { bd = d; tp = e; }
         }
@@ -423,40 +672,15 @@ export const STEPS = [
       const ctx2 = arguments[1];
       const pp2 = posOf(app.player);
       if (tp) {
-        // Shore-following: when the straight line to the target runs into the sea, veer and
-        // walk the coastline instead — a devil-fruit user cannot swim there.
-        let aim = Math.atan2(tp.x - pp2.x, tp.z - pp2.z);
-        const probe = (a) => {
-          const h = app.world && app.world.heightAt
-            ? app.world.heightAt(pp2.x + Math.sin(a) * 4, pp2.z + Math.cos(a) * 4) : 1;
-          return h > 0.2;
-        };
-        if (!probe(aim)) {
-          const sgn = Math.floor(t / 6) % 2 === 0 ? 1 : -1;
-          for (let k = 1; k <= 5; k++) {
-            if (probe(aim + sgn * k * 0.5)) { aim += sgn * k * 0.5; break; }
-            if (k === 5) aim += Math.PI;   // dead end: turn around
-          }
-        }
-        steerTo(api, pp2.x + Math.sin(aim) * 10, pp2.z + Math.cos(aim) * 10);
-      } else api.look(Math.sin(t * 0.7) * 12, 0);  // sweep for something to fight
-      api.set('moveForward', true);
-      api.set('sprint', (t % 5) < 2);
-      // Unstick: if a second of walking moved us less than half a metre, strafe and hop
-      // until the obstacle lets go — the camps sit behind ridges the straight line hits.
-      if (ctx2._upos === undefined || t - (ctx2._ut || 0) > 1.0) {
-        ctx2._stuck = ctx2._upos !== undefined && dist2d(pp2, ctx2._upos) < 0.5;
-        ctx2._upos = { x: pp2.x, z: pp2.z };
-        ctx2._ut = t;
-      }
-      if (ctx2._stuck) {
-        const side = Math.floor(t / 2) % 2 === 0;
-        api.set('moveLeft', side);
-        api.set('moveRight', !side);
-        if ((t % 0.5) < 0.06) api.tap('jump');
+        // The full navigator: BFS route, water/cliff probes, sticky veer, varied escapes.
+        // The bespoke single-sample shore veer this replaced paced the coastline for whole
+        // budgets — the same local-minimum family the route sense was built to end.
+        walkTowards(api, app, steerTo, pp2, tp.x, tp.z, t, ctx2);
+        api.set('sprint', (t % 5) < 2);
       } else {
-        api.set('moveLeft', false);
-        api.set('moveRight', false);
+        api.look(Math.sin(t * 0.7) * 12, 0);  // sweep for something to fight
+        api.set('moveForward', true);
+        api.set('sprint', (t % 5) < 2);
         if ((t % 1.7) < 0.06) api.tap('jump');
       }
     },
@@ -478,18 +702,19 @@ export const STEPS = [
       const p = app.player;
       const pp = posOf(p);
       // A knockback into the sea triggers the drowning rescue, which can wash the fight back
-      // to the dock. Recover: get onto authored ground (the village) before re-engaging.
+      // to the dock. Recover only from genuinely DEEP water: the old `terrain > 0.3` gate
+      // also matched the beach tideline and the pier, and combat regularly goes active while
+      // the driver stands exactly there — the recovery branch then ate the whole budget
+      // (240 s of early returns, measured). Fighting from wet sand is fine.
       const g = app.world && typeof app.world.heightAt === 'function' ? app.world.heightAt(pp.x, pp.z) : 1;
-      if (!(g > 0.3)) {
+      if (g < -0.6 || p.inWater) {
         let a = null, bd = 1e9;
         for (const n of (app.npc && app.npc.list) || []) {
           const d = dist2d(pp, posOf(n));
           if (d < bd) { bd = d; a = posOf(n); }
         }
-        if (a) steerTo(api, a.x, a.z);
+        if (a) walkTowards(api, app, steerTo, pp, a.x, a.z, t, ctx);
         api.set('lightAttack', false);
-        api.set('moveForward', true);
-        if ((t % 0.6) < 0.06) api.tap('jump');
         return;
       }
       // Unstick bookkeeping, same pattern as enter-combat.
@@ -500,22 +725,65 @@ export const STEPS = [
       }
       const threat = app.combat && typeof app.combat.nearestThreat === 'function'
         ? app.combat.nearestThreat() : null;
-      let tp = threat && threat.actor ? threat.actor : null;
+      // Never pick the unkillable sparring partner: 'winning' against him is impossible.
+      let tp = threat && threat.actor && threat.actor.kind !== 'sparring' ? threat.actor : null;
       if (!tp && app.enemies && typeof app.enemies.list === 'function') {
         let bd = 1e9;
         for (const e of app.enemies.list()) {
-          if (e.dead) continue;
+          if (e.dead || e.kind === 'sparring') continue;
           const d = dist2d(pp, e);
           if (d < bd) { bd = d; tp = e; }
         }
       }
-      if (!tp) { api.look(10, 0); api.set('moveForward', false); return; }
+      if (!tp) {
+        ctx._diag = {
+          mode: 'no-target',
+          enemies: app.enemies && app.enemies.list ? app.enemies.list().length : -1,
+          combatActive: !!app.combat.active,
+        };
+        api.look(10, 0); api.set('moveForward', false); return;
+      }
       // Lock on so the character keeps facing the target through the whole exchange —
       // swings resolve along the character's facing, not the camera's.
+      const dist = dist2d(pp, tp);
+      // Long approach through the navigator (routes, probes, escapes); the combat micro
+      // below is for the last dozen metres only.
+      if (dist > 12) {
+        ctx._diag = { mode: 'approach', tgt: tp.kind || '?', dist: +dist.toFixed(1), hp: Math.round(app.player.hp) };
+        walkTowards(api, app, steerTo, pp, tp.x, tp.z, t, ctx);
+        api.set('sprint', true);
+        api.set('lightAttack', false);
+        return;
+      }
+      // Perched-stalemate escape. Measured failure: the jump-hop unstick bounced the player
+      // onto a prop by the vista, the thug held APPROACH four metres away a body height
+      // below, and every swing whiffed for the full budget — position frozen, hp full, zero
+      // kills. In horizontal range with zero positional progress for seconds, back OFF the
+      // perch without jumping (the hop cadence is what maintains it), then re-approach from
+      // new ground; the enemy follows and the fight lands on terrain both sides can path.
+      if (ctx._freeT === undefined) ctx._freeT = t;
+      if (!ctx._stuck) ctx._freeT = t;
+      if (ctx._detourUntil !== undefined && t >= ctx._detourUntil) {
+        ctx._detourUntil = undefined;
+        ctx._freeT = t;               // grace to re-approach before another detour can arm
+      }
+      if (ctx._detourUntil === undefined && ctx._stuck && t - ctx._freeT > 3.5) {
+        ctx._detourUntil = t + 2.2;
+      }
+      if (ctx._detourUntil !== undefined) {
+        const d2 = Math.max(0.5, dist);
+        steerTo(api, pp.x + ((pp.x - tp.x) / d2) * 10, pp.z + ((pp.z - tp.z) / d2) * 10);
+        api.set('moveForward', true);
+        api.set('moveLeft', false);
+        api.set('moveRight', false);
+        api.set('lightAttack', false);
+        return;
+      }
       if (!p.lockTarget && (t % 1.3) < 0.06) api.tap('lockOn');
       steerTo(api, tp.x, tp.z);
-      const dist = dist2d(pp, tp);
-      api.set('moveForward', dist > 2.2);
+      // Hold forward through the exchange — facing freezes while attacking, and a strafing
+      // enemy walks out of a planted swing arc (same lesson the quest-fight branch learned).
+      api.set('moveForward', dist > 1.6);
       if (ctx._stuck && dist > 4) {
         const side = Math.floor(t / 2) % 2 === 0;
         api.set('moveLeft', side);
@@ -525,10 +793,24 @@ export const STEPS = [
         api.set('moveLeft', false);
         api.set('moveRight', false);
       }
-      const beat = t % 1.2;
-      api.set('lightAttack', beat > 0.2 && beat < 0.34);
+      // Combo tempo: the light chain's follow-up window is 0.42 s — a 0.3 s press rhythm
+      // rides every combo window; the old one-press-per-1.2 s never got past light1.
+      api.set('lightAttack', dist < 2.7 && (t % 0.3) < 0.15);
+      // Fight like a fruit user (the tutorial has granted one by now): the stretch punch
+      // out-ranges every whiff problem melee has against a circling target — measured in the
+      // quest branch at 1 melee connect per 14 swings before this line existed there.
+      if (dist < 9 && dist > 1.5 && (t % 1.2) < 0.08) api.tap('fruitPower');
       if ((t % 4.9) > 4.5 && (t % 4.9) < 4.6) api.tap('dodge');
+      if (ctx) {
+        ctx._diag = {
+          mode: 'micro', tgt: tp.kind || '?', dist: +dist.toFixed(1), tgtHp: Math.round(tp.hp ?? -1),
+          hp: Math.round(app.player.hp), lock: !!p.lockTarget,
+          swings: app.combat && app.combat.stats ? app.combat.stats.attacksStarted : -1,
+        };
+      }
     },
+    // The runner calls diag({ app, ctx }) — the step store is one level down.
+    diag(x) { return (x && x.ctx && x.ctx._diag) || null; },
     done: ({ app, victoriesAtStart, killsAtStart }) => !app.player.dead
       && ((app.combat.victories || 0) > victoriesAtStart || (app.combat.kills || 0) > killsAtStart),
   },
@@ -598,6 +880,7 @@ export const STEPS = [
       const p = posOf(app.player);
       const c = arguments[0].ctx || {};
       return {
+        crumbs: (c._crumbs || []).slice(-30),
         branch: c._branch || 'none', fightN: c._branchN || 0, collectN: c._collectN || 0, taps: c._taps || 0,
         swings: app.combat && app.combat.stats ? app.combat.stats.attacksStarted : -1,
         kills: (app.combat && app.combat.kills) || 0,
@@ -606,6 +889,8 @@ export const STEPS = [
         stepIdx: tq && tq.step ? tq.step.index : null,
         objs: tq && tq.step ? tq.step.objectives.map(o => o.type + ':' + (o.done ? 'done' : o.current + '/' + o.target) + (o.point ? ':' + o.point : '')) : null,
         pos: p ? [Math.round(p.x), Math.round(p.z)] : null,
+        onShip: !!(app.player && app.player.onShip),
+        coneTarget: (app.player && app.player.interactTarget && app.player.interactTarget.label) || null,
         enemies: app.enemies && app.enemies.list ? app.enemies.list().filter(e => !e.dead).length : null,
         takeables: app.world && app.world.interactablesNear && p
           ? (app.world.interactablesNear(p.x, p.z, 4000) || []).filter(i => i.label && i.label.startsWith('Take ')).length : null,
@@ -619,11 +904,58 @@ export const STEPS = [
       const q = app.quests || app.quest;
       const pp = posOf(app.player);
       if (!q || !pp) return;
+      // A dialogue or menu blocks ALL play input (input.blocked = ui.menuOpen) — and this
+      // step both talks to NPCs and taps E near villagers, so it WILL open one eventually.
+      // Without this guard the driver stood statue-still at the village brawl for 600 s,
+      // health sawing 13->120->13, issuing movement into a void (measured, breadcrumbed).
+      // Every other walking step already carried this exact line.
+      if (app.ui && app.ui.menuOpen) { if ((t % 0.8) < 0.1) api.tap('pause'); return; }
+      // The dock berth is inside the quest area, and "Board ship" competes in the same
+      // interact cone as the net floats. A stray E near the gangplank puts the driver on
+      // DECK, where movement input drives the ship — the whole runner is void until ashore.
+      if (app.player.onShip) { if ((t % 0.6) < 0.1) api.tap('interact'); return; }
+      // Route breadcrumbs for the failure diag: [t, x, z, hp, branchCode] every 20 sim-s.
+      {
+        const cb = arguments[1].ctx || arguments[1];
+        if (cb._crumbT === undefined || t - cb._crumbT >= 20) {
+          cb._crumbT = t;
+          cb._crumbs = cb._crumbs || [];
+          const th = app.combat && app.combat.nearestThreat && app.combat.nearestThreat();
+          const thd = th && th.actor ? Math.round(dist2d(pp, posOf(th.actor))) : -1;
+          cb._crumbs.push([Math.round(t), Math.round(pp.x), Math.round(pp.z),
+            Math.round(app.player.hp), (cb._branch || '?').slice(0, 9), thd]);
+        }
+      }
       const tq = q.trackedQuest && q.trackedQuest();
       const obj = tq && tq.step ? (tq.step.objectives || []).find(o => !o.done) : null;
 
       // Anything already hunting us gets fought first, whatever the objective says.
       const c2 = arguments[1].ctx || arguments[1];
+      // Harassment recovery. Village brawls chip the player with stray hits the fight-first
+      // gate rightly ignores (the attackers target villagers, nearestThreat is null) — one
+      // run bled 120->35 hp crossing a brawl five times. Below 40% hp, disengage AWAY from
+      // the nearest live enemy until the out-of-combat mend has done its work.
+      {
+        const hpFrac = app.player.hp / (app.player.maxHp || 120);
+        if (c2._fleeing ? hpFrac < 0.8 : hpFrac < 0.4) {
+          c2._fleeing = true;
+          c2._branch = 'flee hp=' + Math.round(app.player.hp);
+          let ne = null, ned = 1e9;
+          if (app.enemies && typeof app.enemies.list === 'function') {
+            for (const e of app.enemies.list()) {
+              if (e.dead || e.kind === 'sparring') continue;   // he is harmless; never flee him
+              const d = dist2d(pp, e);
+              if (d < ned) { ned = d; ne = e; }
+            }
+          }
+          const fx = ne ? pp.x + ((pp.x - ne.x) / (ned || 1)) * 30 : pp.x + 30;
+          const fz = ne ? pp.z + ((pp.z - ne.z) / (ned || 1)) * 30 : pp.z;
+          api.set('lightAttack', false);
+          walkTowards(api, app, steerTo, pp, fx, fz, t, c2);
+          return;
+        }
+        c2._fleeing = false;
+      }
       const threat = app.combat && app.combat.nearestThreat && app.combat.nearestThreat();
       // Fight-first only when the threat is actually ON us. An aware enemy across the island
       // kept this branch true for 17,895 consecutive steps while the collect objective starved —
@@ -652,7 +984,9 @@ export const STEPS = [
         let pursuer = null, pd = 1e9;
         if (app.enemies && typeof app.enemies.list === 'function') {
           for (const en of app.enemies.list()) {
-            if (en.dead) continue;
+            // The passive sparring partner near the village would pin the retreat latch
+            // (pd never clears 26 m) while never being a pursuer at all.
+            if (en.dead || en.kind === 'sparring') continue;
             const d = dist2d(pp, en);
             if (d < pd) { pd = d; pursuer = en; }
           }
@@ -707,7 +1041,7 @@ export const STEPS = [
             const fam = (k) => (k ? String(k).split('_')[0] : '');
             const wantFam = obj && obj.type === 'defeat' && obj.enemyKind && obj.enemyKind !== 'any'
               ? fam(obj.enemyKind) : null;
-            const all = app.enemies.list().filter(e => !e.dead &&
+            const all = app.enemies.list().filter(e => !e.dead && e.kind !== 'sparring' &&
               (!wantFam || fam(e.questKind || e.kind) === wantFam));
             let bs = 1e9, pick = null;
             for (const e of all) {
@@ -788,18 +1122,39 @@ export const STEPS = [
         }
         if (best && c3) {
           const key = Math.round(best.pos.x) + ',' + Math.round(best.pos.z);
-          if (c3._tgtKey !== key) { c3._tgtKey = key; c3._tgtSince = t; c3._tgtBest = bd; }
-          else if (bd < c3._tgtBest - 0.4) { c3._tgtBest = bd; c3._tgtSince = t; }
-          else if (t - c3._tgtSince > 6) {
-            c3._skipItems.add(key);   // six seconds without getting closer: unreachable, move on
-            c3._tgtKey = null;
-            best = null;
+          // The give-up clock PAUSES during deliberate detours — it must never RESET there:
+          // a wedge cycles 3 s stuck -> 2 s detour forever, and a clock reset on each detour
+          // made the blacklist unreachable (measured: one hut pocket ate a full 780 s run).
+          const detouring = c2 && c2._wesc > 0;
+          if (c3._tgtKey !== key) { c3._tgtKey = key; c3._tgtStall = 0; c3._tgtBest = bd; }
+          else if (bd < c3._tgtBest - 0.4) { c3._tgtBest = bd; c3._tgtStall = 0; }
+          else if (!detouring) {
+            c3._tgtStall = (c3._tgtStall || 0) + 1 / 60;
+            if (c3._tgtStall > 8) {
+              c3._skipItems.add(key);   // eight non-detour seconds without progress: move on
+              c3._tgtKey = null;
+              best = null;
+            }
           }
         }
         if (best) {
           if (c2) { c2._branch = 'collect d=' + bd.toFixed(1); c2._collectN = (c2._collectN || 0) + 1; }
           const dNow = walkTowards(api, app, steerTo, pp, best.pos.x, best.pos.z, t, c2);
-          if (dNow < 4.2 && (t % 0.4) < 0.1) { api.tap('interact'); if (c2) c2._taps = (c2._taps || 0) + 1; }
+          // Tap ONLY when the game's own interact cone is aimed at the wanted pickup —
+          // player.interactTarget is exactly what E would hit. Tapping on distance alone
+          // spent 42 presses on "Board ship"/NPCs at the berth and collected nothing
+          // (measured: 0/4 after 780 s with the driver repeatedly in range).
+          const itgt = app.player.interactTarget;
+          const aimed = itgt && itgt.label && itgt.label.indexOf(wantLabel) === 0;
+          if (aimed && (t % 0.4) < 0.1) { api.tap('interact'); if (c2) c2._taps = (c2._taps || 0) + 1; }
+          else if (dNow < 4.2 && !aimed) {
+            // In range but the cone is on the wrong thing (or nothing). The cone follows
+            // CHARACTER facing, which only updates while moving — so aim the camera at the
+            // item (steerTo owns the measured look gain) and keep a half-step of walk on,
+            // which re-faces the character into the cone-hit next step.
+            steerTo(api, best.pos.x, best.pos.z);
+            api.set('moveForward', true);
+          }
           return;
         }
       }

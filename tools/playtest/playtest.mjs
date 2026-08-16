@@ -35,10 +35,14 @@ function parseArgs(argv) {
     seed: '20260814', w: 1280, h: 720,
     out: 'evidence/reports/playtest.json',
     maxMinutes: 25, headed: false, json: false,
+    // Own port: reusing a foreign dev server means inheriting its HMR watcher, whose
+    // spurious mid-run page reloads destroy the evaluation context (measured, repeatedly).
+    port: 5273,
   };
   for (let i = 2; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--seed') a.seed = argv[++i];
+    else if (k === '--port') a.port = parseInt(argv[++i], 10);
     else if (k === '--w') a.w = parseInt(argv[++i], 10);
     else if (k === '--h') a.h = parseInt(argv[++i], 10);
     else if (k === '--out') a.out = argv[++i];
@@ -90,7 +94,7 @@ async function main() {
   if (args.help) { console.log(USAGE); process.exit(0); }
   if (args.bad) { console.error(`playtest: unknown argument ${args.bad}\n\n${USAGE}`); process.exit(2); }
 
-  const server = await startServer(5273);
+  const server = await startServer(args.port);
   console.log(`server: ${server.url}${server.reused ? ' (reused)' : ''}`);
   // Real GPU: the playtest is meant to behave like a player's session, and a software
   // rasteriser changes frame pacing enough to change what the input script experiences.
@@ -116,26 +120,42 @@ async function main() {
 
   try {
     const url = `${server.url}/playtest.html?seed=${args.seed}&w=${args.w}&h=${args.h}`;
-    await page.goto(url, { waitUntil: 'load', timeout: 120000 });
 
-    // The script can hand control back at the reload boundary; loop until it is done.
-    for (let leg = 0; leg < 4; leg++) {
-      await page.waitForFunction('window.__T && window.__PLAYTEST_READY === true', { timeout: 180000 });
-      const bootError = await page.evaluate(() => window.__PLAYTEST_ERROR || null);
-      if (bootError) throw new Error('boot failed: ' + String(bootError).split('\n')[0]);
+    // A SwiftShader tab can crash under system load ("Execution context was destroyed" — the
+    // crash page counts as a navigation). The script is deterministic, so the honest recovery
+    // is a full restart on a fresh load, not a resume. Two retries; a third crash is reported.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      fatal = null;
+      result = null;
+      try {
+        await page.goto(url, { waitUntil: 'load', timeout: 120000 });
+        // The script can hand control back at the reload boundary; loop until it is done.
+        for (let leg = 0; leg < 4; leg++) {
+          await page.waitForFunction('window.__T && window.__PLAYTEST_READY === true', { timeout: 180000 });
+          const bootError = await page.evaluate(() => window.__PLAYTEST_ERROR || null);
+          if (bootError) throw new Error('boot failed: ' + String(bootError).split('\n')[0]);
 
-      const left = budgetMs - (Date.now() - t0);
-      if (left <= 0) throw new Error(`wall-clock budget of ${args.maxMinutes} minute(s) exhausted`);
+          const left = budgetMs - (Date.now() - t0);
+          if (left <= 0) throw new Error(`wall-clock budget of ${args.maxMinutes} minute(s) exhausted`);
 
-      process.stdout.write(leg === 0 ? '  running script ... ' : `  resuming after reload ... `);
-      result = await page.evaluate(() => window.__T.run(), undefined, { timeout: left });
-      process.stdout.write(`${result.status}\n`);
+          process.stdout.write(leg === 0 ? '  running script ... ' : `  resuming after reload ... `);
+          result = await page.evaluate(() => window.__T.run(), undefined, { timeout: left });
+          process.stdout.write(`${result.status}\n`);
 
-      if (!result.needsReload) break;
-      reloads++;
-      await page.reload({ waitUntil: 'load', timeout: 120000 });
+          if (!result.needsReload) break;
+          reloads++;
+          await page.reload({ waitUntil: 'load', timeout: 120000 });
+        }
+        if (result && result.needsReload) fatal = 'the script asked to reload more times than the runner allows';
+        break;
+      } catch (e) {
+        fatal = String(e && e.message ? e.message : e);
+        const crashed = /context was destroyed|Target closed|crashed/i.test(fatal);
+        if (!crashed || attempt === 2) break;
+        process.stdout.write(`\n  tab crashed (${fatal.split('\n')[0]}); restarting the script fresh ...\n`);
+        reloads = 0;
+      }
     }
-    if (result && result.needsReload) fatal = 'the script asked to reload more times than the runner allows';
   } catch (e) {
     fatal = String(e && e.message ? e.message : e);
   } finally {

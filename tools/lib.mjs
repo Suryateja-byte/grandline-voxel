@@ -123,7 +123,12 @@ export async function startServer(port = 5273) {
   if (!free) return { url: `http://127.0.0.1:${port}`, stop: async () => {}, reused: true };
   const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm',
     ['run', 'dev', '--', '--port', String(port), '--strictPort'],
-    { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
+    {
+      cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32',
+      // No watcher, no HMR: a measurement server that hot-reloads navigates the page
+      // mid-run and destroys the evidence (see vite.config.js).
+      env: { ...process.env, GLV_NO_WATCH: '1' },
+    });
   let log = '';
   child.stdout.on('data', d => { log += d.toString(); });
   child.stderr.on('data', d => { log += d.toString(); });
