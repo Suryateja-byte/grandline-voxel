@@ -1,0 +1,157 @@
+{
+  "scenario": "sail-approach-island",
+  "desc": "Sailing an island up over the horizon. The chunk streamer has to build terrain, props and foliage while the frame is already busy — the classic source of a one-second hitch.",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "seconds": 30,
+  "simSteps": 1800,
+  "status": "ok",
+  "missingSystems": [],
+  "note": "",
+  "frames": 4583,
+  "durationS": 129.51,
+  "p50": 13.613,
+  "p95": 15.973,
+  "p99": 16.913,
+  "p999": 10.884,
+  "worst": 20.5,
+  "framesOver16_7": 2,
+  "framesOver33": 0,
+  "shaderCompiles": 0,
+  "shaderCompileMs": 0,
+  "hitchCauses": {},
+  "worstHitches": [],
+  "zoneTotalsMs": {
+    "input": 125.9,
+    "sim": 1030.7,
+    "combat": 163.6,
+    "physics": 40.4,
+    "fx": 25.9,
+    "ui": 81.5,
+    "draw": 16822.2,
+    "player": 161.5,
+    "respawn": 5.2,
+    "fruit": 78.3,
+    "npc": 166.1,
+    "ship": 75.1,
+    "world": 80.4,
+    "spawn": 19.4,
+    "weather": 11.5,
+    "quests": 5.1,
+    "gameCamera": 34.9,
+    "audio": 1.6,
+    "save": 2.1
+  },
+  "memTrend": {
+    "firstMB": 84.41,
+    "lastMB": 88.12,
+    "peakMB": 97.12,
+    "samples": 71
+  },
+  "cpuOnly": {
+    "p50": 2.8,
+    "p95": 5.2,
+    "p99": 7.518,
+    "worst": 20.5
+  },
+  "gpuBatch": {
+    "samples": 101,
+    "p50": 13.613,
+    "p95": 15.973,
+    "p99": 16.913,
+    "worst": 17.4,
+    "fps": 73.5
+  },
+  "gpuSync": "batch",
+  "dynamicRes": {
+    "enabled": true,
+    "scale": 0.75,
+    "minSeen": 0.7,
+    "budgetMs": 15.9
+  },
+  "gpuThroughputMs": 11.78,
+  "present": {
+    "samples": 101,
+    "p50": 13.613,
+    "p95": 15.973,
+    "p99": 16.913,
+    "worst": 17.4,
+    "fps": 73.5
+  },
+  "warmup": {
+    "frames": 59,
+    "worstMs": 44.1,
+    "simSteps": 44
+  },
+  "shaderCompilesDuringPlay": 0,
+  "programsAtStart": 0,
+  "peakDrawCalls": 290,
+  "peakTriangles": 288666,
+  "heap": {
+    "available": true,
+    "startMB": 115.6,
+    "baselineMB": 81,
+    "endMB": 88.08,
+    "growthPct": 8.74,
+    "peakMB": 97.12,
+    "samples": 71
+  },
+  "bootMs": 2137,
+  "prewarmMs": 266,
+  "errors": [],
+  "gate": {
+    "checks": [
+      {
+        "name": "p95",
+        "actual": 15.973,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "p99",
+        "actual": 16.913,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP95",
+        "actual": 15.973,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP99",
+        "actual": 16.913,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "shaderCompiles",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "consoleErrors",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "heapGrowth",
+        "actual": 8.74,
+        "limit": 25,
+        "unit": "%",
+        "pass": true
+      }
+    ],
+    "pass": true
+  }
+}

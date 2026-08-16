@@ -1,0 +1,119 @@
+{
+  "generatedFrom": "tools/diff/diff.mjs",
+  "a": "evidence/baseline",
+  "b": "evidence/shots",
+  "out": "evidence/diff",
+  "threshold": 0.002,
+  "pixelEps": 0.0035,
+  "colorSpace": "linear (sRGB decoded)",
+  "weighting": "luma 1.0, chroma 0.25",
+  "status": "fail",
+  "failed": [
+    "ocean-golden",
+    "ocean-night",
+    "ocean-noon",
+    "ocean-storm"
+  ],
+  "shots": [
+    {
+      "shot": "char-hero-closeup",
+      "status": "added",
+      "note": "new shot — not in baseline",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "char-lineup",
+      "status": "added",
+      "note": "new shot — not in baseline",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "game-island-approach",
+      "status": "added",
+      "note": "new shot — not in baseline",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "game-island-shore",
+      "status": "added",
+      "note": "new shot — not in baseline",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "game-island-vista",
+      "status": "added",
+      "note": "new shot — not in baseline",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "game-night-island",
+      "status": "added",
+      "note": "new shot — not in baseline",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "game-storm-sea",
+      "status": "added",
+      "note": "new shot — not in baseline",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "ocean-golden",
+      "status": "fail",
+      "note": "size changed 960x540 -> 1920x1080",
+      "changedPixels": 2073600,
+      "changedFraction": 1,
+      "maxDelta": 1,
+      "meanDelta": 1,
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "ocean-night",
+      "status": "fail",
+      "note": "size changed 960x540 -> 1920x1080",
+      "changedPixels": 2073600,
+      "changedFraction": 1,
+      "maxDelta": 1,
+      "meanDelta": 1,
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "ocean-noon",
+      "status": "fail",
+      "note": "size changed 960x540 -> 1920x1080",
+      "changedPixels": 2073600,
+      "changedFraction": 1,
+      "maxDelta": 1,
+      "meanDelta": 1,
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "ocean-storm",
+      "status": "fail",
+      "note": "size changed 960x540 -> 1920x1080",
+      "changedPixels": 2073600,
+      "changedFraction": 1,
+      "maxDelta": 1,
+      "meanDelta": 1,
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "shot": "props-materials",
+      "status": "added",
+      "note": "new shot — not in baseline",
+      "width": 1920,
+      "height": 1080
+    }
+  ]
+}

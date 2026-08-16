@@ -1,0 +1,77 @@
+
+=== check-world  seed=20260814 ===
+
+[1] placement purity over 100 sectors
+  PASS  placement identical forwards and backwards  — 81 minor islands over 100 sectors
+  PASS  a different seed gives a different sea  — seed A: 81 islands, seed B: 80
+
+[2] blue-noise spacing and landmark exclusion
+  PASS  minimum separation >= 900 m  — worst pair 1011.5 m (minor_sandbar_5057_5520 / minor_ruinedWatch_5315_6498)
+  PASS  no landmark is crowded  — closest minor to any landmark: 1401 m (limit 1400)
+
+  nearest-neighbour separation histogram (250 m buckets):
+     1000- 1250 m     3  #########
+     1250- 1500 m    10  ###############################
+     1500- 1750 m     8  #########################
+     1750- 2000 m     8  #########################
+     2000- 2250 m     5  ################
+     2250- 2500 m    14  ############################################
+     2500- 2750 m     9  ############################
+     2750- 3000 m     4  #############
+     3000- 3250 m     4  #############
+     3250- 3500 m     7  ######################
+     3500- 3750 m     2  ######
+     3750- 4000 m     2  ######
+     4000- 4250 m     1  ###
+     4500- 4750 m     1  ###
+      5000+ m     3  #########
+
+[3] streaming the route in two independent worlds
+  PASS  resident chunk sets identical across two worlds  — 46 waypoints
+
+[4] heightAt / blockAt agreement at 5000 points
+  PASS  heightAt / blockAt agree  — 5000 points sampled, 1241 on land
+  PASS  heightAt is the top of the solid column  — surface and block queries consistent
+  PASS  raycast lands on the surface it should  — 60/60 downward rays hit the top voxel
+  PASS  setBlock writes, re-dirties and serialises  — edit captured in the save payload
+
+[5] memory over the route
+  PASS  resident island volumes stay bounded  — peak 41.1 MB of voxel volumes (limit 220 MB)
+  PASS  resident chunk meshes stay under the cap  — peak 121 chunks (cap 460)
+
+[6] weather field
+  PASS  weather is a pure function of (seed, position, time)  — field re-sampled 500x, identical
+  PASS  weather is mostly sailable  — clear 44%  breezy 17%  overcast 16%  squall 14%  storm 9%
+
+[7] spawn determinism and the cleared set
+  PASS  spawn sets are identical on rebuild and honour the cleared set  — minor_wreckIsle_6509_-1541: 1 camps, 0 npcs, 3 chests; cleared survives save/load: true
+  PASS  marine patrols scale with the bounty tier  — peak 4 marine hulls at sea for marinePatrolChance 0.62 (cap 4)
+
+=== counts and timings ===
+  seed                       20260814
+  sectors                    100
+  minorIslands               81
+  landmarks                  8
+  minSeparationM             1011.5
+  routeWaypoints             46
+  routeMetres                21288
+  islandsBuilt               26
+  islandsCompacted           25
+  chunksMeshed               829
+  chunksEvicted              817
+  peakResidentChunks         121
+  peakTriangles              318430
+  peakVolumeMB               41.1
+  peakHeapMB                 70.3
+  endHeapMB                  14.7
+  workUnitsTotal             7103910
+  streamerMs                 5294
+  peakMarineShips            4
+  microsecondsPerWorkUnit    0.745
+  budgetUnitsPerStep         4200
+  maxSettleSteps             203
+  spawn                      {"islands":17,"camps":24,"chests":69,"npcs":32,"wildlife":100,"patrols":19,"marineShips":2,"cleared":0,"opened":0,"props":0}
+  weather                    {"key":"clear","severity":0.07405165041346654,"rain":0.0010886549587475992,"storm":0.023730673817146684,"wetness":0.8015151515151866,"strikes":9}
+
+PASS — 15/15 checks
+EXIT=0

@@ -1,0 +1,141 @@
+{
+  "generatedFrom": "tools/playtest/playtest.mjs",
+  "seed": "20260814",
+  "width": 1280,
+  "height": 720,
+  "status": "pass",
+  "fatal": null,
+  "reloads": 1,
+  "counts": {
+    "pass": 15,
+    "fail": 0,
+    "skipped": 0
+  },
+  "steps": [
+    {
+      "id": "boot",
+      "desc": "the app boots, builds its procedural textures and presents a frame",
+      "status": "pass",
+      "simSeconds": 0.02,
+      "simSteps": 1,
+      "note": ""
+    },
+    {
+      "id": "tutorial-completes",
+      "desc": "the opening tutorial can be finished with the controls it teaches",
+      "status": "pass",
+      "simSeconds": 35.53,
+      "simSteps": 2132,
+      "note": ""
+    },
+    {
+      "id": "board-ship",
+      "desc": "walk to the ship and board it with the interact key",
+      "status": "pass",
+      "simSeconds": 4.03,
+      "simSteps": 242,
+      "note": ""
+    },
+    {
+      "id": "sail-to-first-island",
+      "desc": "sail until the first island is within docking range",
+      "status": "pass",
+      "simSeconds": 0.02,
+      "simSteps": 1,
+      "note": ""
+    },
+    {
+      "id": "dock",
+      "desc": "dock the ship at the island",
+      "status": "pass",
+      "simSeconds": 0.02,
+      "simSteps": 1,
+      "note": ""
+    },
+    {
+      "id": "walk-ashore",
+      "desc": "leave the ship and stand on land above sea level",
+      "status": "pass",
+      "simSeconds": 0.62,
+      "simSteps": 37,
+      "note": ""
+    },
+    {
+      "id": "enter-combat",
+      "desc": "find a fight",
+      "status": "pass",
+      "simSeconds": 20.92,
+      "simSteps": 1255,
+      "note": ""
+    },
+    {
+      "id": "win-a-fight",
+      "desc": "win the fight without dying",
+      "status": "pass",
+      "simSeconds": 7.57,
+      "simSteps": 454,
+      "note": ""
+    },
+    {
+      "id": "use-devil-fruit",
+      "desc": "use a devil fruit power",
+      "status": "pass",
+      "simSeconds": 0.02,
+      "simSteps": 1,
+      "note": ""
+    },
+    {
+      "id": "accept-quest",
+      "desc": "talk to a quest giver and accept a quest",
+      "status": "pass",
+      "simSeconds": 0.02,
+      "simSteps": 1,
+      "note": ""
+    },
+    {
+      "id": "complete-quest",
+      "desc": "complete the accepted quest",
+      "status": "pass",
+      "simSeconds": 561.63,
+      "simSteps": 33698,
+      "note": ""
+    },
+    {
+      "id": "bounty-increases",
+      "desc": "the bounty rises after the quest and the fight",
+      "status": "pass",
+      "simSeconds": 0.02,
+      "simSteps": 1,
+      "note": ""
+    },
+    {
+      "id": "save",
+      "desc": "the game writes a save the player can come back to",
+      "status": "pass",
+      "simSeconds": 0.02,
+      "simSteps": 1,
+      "note": ""
+    },
+    {
+      "id": "reload",
+      "desc": "reload the page from scratch",
+      "status": "pass",
+      "simSeconds": 0,
+      "note": "page reloaded and the app booted again"
+    },
+    {
+      "id": "state-restored",
+      "desc": "the reloaded game is the same game: position, bounty and progress survive",
+      "status": "pass",
+      "simSeconds": 0.02,
+      "simSteps": 1,
+      "note": ""
+    }
+  ],
+  "skipped": [],
+  "failed": [],
+  "simSeconds": 630.46,
+  "wallSeconds": 649.4,
+  "consoleErrors": [],
+  "inputPolicy": "real KeyboardEvent / MouseEvent / WheelEvent dispatched at the game canvas; no gameplay function is called directly"
+}

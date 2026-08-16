@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.vite/
+evidence/shots__verify/
+evidence/**/_dbg_*.png
+evidence/**/_debug_*.png
+*.log

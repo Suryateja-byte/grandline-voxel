@@ -1,0 +1,157 @@
+{
+  "scenario": "stress-everything",
+  "desc": "Storm, boss, adds, fruit powers and the ship in frame at once, near the island so the streamer is also working. Nothing in the shipped game should ever exceed this.",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "seconds": 45,
+  "simSteps": 2700,
+  "status": "ok",
+  "missingSystems": [],
+  "note": "",
+  "frames": 7292,
+  "durationS": 198.21,
+  "p50": 13.793,
+  "p95": 16.04,
+  "p99": 16.553,
+  "p999": 12.571,
+  "worst": 22.4,
+  "framesOver16_7": 1,
+  "framesOver33": 0,
+  "shaderCompiles": 0,
+  "shaderCompileMs": 0,
+  "hitchCauses": {},
+  "worstHitches": [],
+  "zoneTotalsMs": {
+    "input": 210.8,
+    "sim": 1888.1,
+    "combat": 505.7,
+    "physics": 103.8,
+    "fx": 39.7,
+    "ui": 141.5,
+    "draw": 25719.1,
+    "player": 274.1,
+    "respawn": 8.5,
+    "fruit": 110.8,
+    "npc": 259.2,
+    "ship": 119.2,
+    "world": 104.5,
+    "spawn": 30.6,
+    "weather": 20.2,
+    "quests": 10.2,
+    "gameCamera": 53.4,
+    "audio": 3.5,
+    "save": 1.9
+  },
+  "memTrend": {
+    "firstMB": 82.15,
+    "lastMB": 84.78,
+    "peakMB": 110.45,
+    "samples": 113
+  },
+  "cpuOnly": {
+    "p50": 2.7,
+    "p95": 5.3,
+    "p99": 7.5,
+    "worst": 22.4
+  },
+  "gpuBatch": {
+    "samples": 162,
+    "p50": 13.793,
+    "p95": 16.04,
+    "p99": 16.553,
+    "worst": 17.76,
+    "fps": 72.5
+  },
+  "gpuSync": "batch",
+  "dynamicRes": {
+    "enabled": true,
+    "scale": 0.8,
+    "minSeen": 0.7,
+    "budgetMs": 15.9
+  },
+  "gpuThroughputMs": 13.1,
+  "present": {
+    "samples": 162,
+    "p50": 13.793,
+    "p95": 16.04,
+    "p99": 16.553,
+    "worst": 17.76,
+    "fps": 72.5
+  },
+  "warmup": {
+    "frames": 79,
+    "worstMs": 68.4,
+    "simSteps": 69
+  },
+  "shaderCompilesDuringPlay": 0,
+  "programsAtStart": 0,
+  "peakDrawCalls": 342,
+  "peakTriangles": 346436,
+  "heap": {
+    "available": true,
+    "startMB": 116.65,
+    "baselineMB": 81.11,
+    "endMB": 87.62,
+    "growthPct": 8.02,
+    "peakMB": 110.45,
+    "samples": 113
+  },
+  "bootMs": 2116,
+  "prewarmMs": 256.2,
+  "errors": [],
+  "gate": {
+    "checks": [
+      {
+        "name": "p95",
+        "actual": 16.04,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "p99",
+        "actual": 16.553,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP95",
+        "actual": 16.04,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP99",
+        "actual": 16.553,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "shaderCompiles",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "consoleErrors",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "heapGrowth",
+        "actual": 8.02,
+        "limit": 25,
+        "unit": "%",
+        "pass": true
+      }
+    ],
+    "pass": true
+  }
+}

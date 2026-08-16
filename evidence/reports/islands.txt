@@ -1,0 +1,48 @@
+seed 20260814  |  tiles 47  |  blocks 46
+
+== determinism ==
+  20 islands x2 builds, byte-identical
+
+== spawn points ==
+  12 required spawns present on all 8 landmarks
+
+== landmarks ==
+id                     ms    voxels   lo m   hi m  volume        bbox(vx)
+shellsCove           89.5   1624734  -11.5   15.0  304x86x304    281x86x264
+    blocks(24 kinds) rock:1435850 dirt:83913 sandWet:36602 grass:23738 sand:23554 grassDry:10933 leavesPalm:3371 plank:1820
+palmReach            83.1   2396060  -11.5   24.0  336x122x336   298x93x285
+    blocks(23 kinds) rock:2089246 dirt:98363 leaves:78983 jungle:58496 sandWet:39060 ice:9569 sand:7851 wood:6832
+cogHarbour           48.7   1783710  -11.5   13.0  336x102x336   289x80x244
+    blocks(19 kinds) rock:1703694 stone:40525 sandWet:21332 plank:5140 sand:2336 metal:2114 woodDark:2086 stoneBrick:1834
+drumPeaks            60.4   3164469  -11.5   60.0  368x158x368   327x145x313
+    blocks(22 kinds) rockCold:2884652 dirt:78028 snow:63893 sandWet:41147 leavesPine:33710 grassCold:29912 stone:15163 sand:6219
+emberfall            50.3   3255588  -11.5   44.0  352x130x352   304x119x292
+    blocks(16 kinds) volcanic:3056289 ash:143736 lava:51027 dirt:1362 stone:1221 metalDark:636 woodDark:504 brick:311
+whisperSands         80.6   2683515  -11.5   23.0  368x98x368    352x73x336
+    blocks(20 kinds) clay:2371261 sand:254193 sandWet:42625 stone:7473 grassDry:2855 ice:1323 cactus:1282 woodDark:1025
+blossomTerrace       62.8   3863652  -11.5   40.0  352x126x352   312x126x304
+    blocks(19 kinds) rock:3525451 dirt:162546 stone:51777 sand:33279 grass:32284 sandWet:26010 leavesCherry:18242 ice:3751
+marinefordReach      70.8   3434502  -11.5   23.5  384x118x384   360x108x340
+    blocks(20 kinds) rock:3155555 stone:95418 dirt:66738 stoneBrick:38892 sand:37078 sandWet:29483 metal:3697 leavesPine:2663
+
+== minor islands ==
+archetype              ms    voxels   lo m   hi m  volume
+spireStack            4.0    211546  -11.5    6.5  144x94x144    rock:206286 sandWet:5182 rope:32 dirt:29
+spireStack            3.3    212904  -11.5    7.0  160x106x160   rock:207674 sandWet:5155 rope:29 dirt:29
+jungleKnuckle         9.7    624638  -11.5   22.5  160x82x160    rock:569131 dirt:23336 sandWet:12486 leaves:9888
+mushroomShelf         7.7    459974  -11.5   12.5  176x70x176    rock:406581 dirt:23330 sandWet:11920 grassCold:7827
+sandbar               2.0     95693  -11.5    2.0  128x64x128    sand:84097 sandWet:11545 leavesPalm:31 wood:14
+jungleKnuckle         7.1    638883  -11.5   23.0  192x90x192    rock:571180 dirt:23308 leaves:22034 sandWet:12491
+ruinedWatch           6.0    321604  -11.5    9.5  160x82x160    rock:296834 sandWet:10595 dirt:4745 stone:4576
+wreckIsle             7.9    297172  -11.5    6.0  176x64x176    rock:254147 sandWet:20742 sand:20262 plank:1123
+frostFloe             8.4    470062  -11.5    9.0  192x64x192    ice:449726 snow:20305 wood:15 woodDark:9
+wreckIsle             5.4    297266  -11.5    6.0  176x64x176    rock:254277 sand:20556 sandWet:20489 plank:1126
+jungleKnuckle         8.5    632636  -11.5   23.0  160x84x160    rock:572484 dirt:23314 leaves:14559 sandWet:12491
+mushroomShelf         7.4    459445  -11.5   12.5  160x66x160    rock:407174 dirt:22715 sandWet:11908 grassCold:7874
+  distinct archetypes produced: 7 (spireStack, jungleKnuckle, mushroomShelf, sandbar, ruinedWatch, wreckIsle, frostFloe)
+
+== totals ==
+  20 islands  |  623.4 ms total  |  31.2 ms mean  |  89.5 ms worst
+  26,928,053 solid voxels
+
+OK

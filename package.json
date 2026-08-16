@@ -1,0 +1,28 @@
+{
+  "name": "grandline-voxel",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5273 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5274 --strictPort",
+    "capture": "node tools/capture/capture.mjs",
+    "diff": "node tools/diff/diff.mjs",
+    "profile": "node tools/profile/profile.mjs",
+    "playtest": "node tools/playtest/playtest.mjs",
+    "gate": "node tools/gate.mjs",
+    "lint:determinism": "node tools/lint-determinism.mjs",
+    "lint:assets": "node tools/lint-assets.mjs",
+    "progress": "node tools/progress.mjs",
+    "check": "node tools/check-quests.mjs && node tools/check-charmodel.mjs && node tools/check-islands.mjs"
+  },
+  "dependencies": {
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0",
+    "playwright-core": "^1.50.0",
+    "pngjs": "^7.0.0"
+  }
+}

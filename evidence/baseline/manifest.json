@@ -1,0 +1,72 @@
+{
+  "generatedFrom": "tools/capture/capture.mjs",
+  "seed": "20260814",
+  "width": 960,
+  "height": 540,
+  "rasteriser": "ANGLE/SwiftShader (software, deterministic)",
+  "isolation": "fresh browser process+context+page per shot",
+  "shots": [
+    {
+      "shot": "ocean-noon",
+      "file": "evidence/shots/ocean-noon.png",
+      "hash": "efa464641f1a8185e3994760ad8cc28fe4b93cab1a0826306ba11210087cc06f",
+      "bytes": 729078,
+      "ms": 901,
+      "drawCalls": 2,
+      "triangles": 29504,
+      "newProgramsSincePrewarm": 0,
+      "bootMs": 332.1,
+      "prewarmMs": 70,
+      "error": null,
+      "consoleErrors": []
+    },
+    {
+      "shot": "ocean-golden",
+      "file": "evidence/shots/ocean-golden.png",
+      "hash": "2c488e1799dfb8944355a817fbecc79363486666a52e79c907f1da8216105764",
+      "bytes": 774039,
+      "ms": 919,
+      "drawCalls": 2,
+      "triangles": 29504,
+      "newProgramsSincePrewarm": 0,
+      "bootMs": 335.5,
+      "prewarmMs": 69.7,
+      "error": null,
+      "consoleErrors": []
+    },
+    {
+      "shot": "ocean-storm",
+      "file": "evidence/shots/ocean-storm.png",
+      "hash": "f559ddb346fbd255de831e714e68a07cf641744fc16fc0721dedd4dbe54904d2",
+      "bytes": 676561,
+      "ms": 920,
+      "drawCalls": 2,
+      "triangles": 29504,
+      "newProgramsSincePrewarm": 0,
+      "bootMs": 345.3,
+      "prewarmMs": 72.6,
+      "error": null,
+      "consoleErrors": []
+    },
+    {
+      "shot": "ocean-night",
+      "file": "evidence/shots/ocean-night.png",
+      "hash": "a2e26f7c9bc3a28407d32122bd6600f195b0954c4abba591fd9331380a6af82b",
+      "bytes": 665218,
+      "ms": 855,
+      "drawCalls": 2,
+      "triangles": 29504,
+      "newProgramsSincePrewarm": 0,
+      "bootMs": 325.3,
+      "prewarmMs": 70.6,
+      "error": null,
+      "consoleErrors": []
+    }
+  ],
+  "shotsWithErrors": 0,
+  "determinism": {
+    "identical": true,
+    "compared": 4,
+    "diffs": []
+  }
+}

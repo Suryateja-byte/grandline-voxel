@@ -1,0 +1,188 @@
+{
+  "scenario": "combat-boss",
+  "desc": "A single large opponent with big telegraphs and area attacks. Long fight, so this is also where per-fight allocation leaks show up as heap growth.",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "seconds": 45,
+  "simSteps": 2700,
+  "status": "ok",
+  "missingSystems": [],
+  "note": "",
+  "frames": 7022,
+  "durationS": 184.69,
+  "p50": 13.513,
+  "p95": 16.02,
+  "p99": 16.52,
+  "p999": 10.596,
+  "worst": 292.6,
+  "framesOver16_7": 2,
+  "framesOver33": 1,
+  "shaderCompiles": 0,
+  "shaderCompileMs": 0,
+  "hitchCauses": {
+    "draw": 1
+  },
+  "worstHitches": [
+    {
+      "frame": 305,
+      "ms": 292.6,
+      "cause": "draw",
+      "causeMs": 289.4,
+      "unaccountedMs": -2.9,
+      "zones": {
+        "input": 0.3,
+        "player": 0.5,
+        "respawn": 0,
+        "fruit": 0,
+        "combat": 0.5,
+        "npc": 0.2,
+        "ship": 0.2,
+        "world": 0,
+        "spawn": 0.1,
+        "weather": 0,
+        "physics": 0,
+        "fx": 1,
+        "quests": 0,
+        "gameCamera": 0.1,
+        "ui": 0.2,
+        "audio": 0,
+        "save": 0,
+        "sim": 3,
+        "draw": 289.4
+      }
+    }
+  ],
+  "zoneTotalsMs": {
+    "input": 203.7,
+    "sim": 1687.7,
+    "combat": 372,
+    "physics": 73.8,
+    "fx": 36.5,
+    "ui": 140.9,
+    "draw": 25634.9,
+    "player": 268.7,
+    "respawn": 7,
+    "fruit": 106.6,
+    "npc": 262,
+    "ship": 113.7,
+    "world": 91.2,
+    "spawn": 22.6,
+    "weather": 17.7,
+    "quests": 10.3,
+    "gameCamera": 56.6,
+    "audio": 3.1,
+    "save": 1.9
+  },
+  "memTrend": {
+    "firstMB": 80.99,
+    "lastMB": 104.1,
+    "peakMB": 113.55,
+    "samples": 109
+  },
+  "cpuOnly": {
+    "p50": 2.8,
+    "p95": 5.5,
+    "p99": 7.4,
+    "worst": 292.6
+  },
+  "gpuBatch": {
+    "samples": 156,
+    "p50": 13.513,
+    "p95": 16.02,
+    "p99": 16.52,
+    "worst": 17.087,
+    "fps": 74
+  },
+  "gpuSync": "batch",
+  "dynamicRes": {
+    "enabled": true,
+    "scale": 0.775,
+    "minSeen": 0.75,
+    "budgetMs": 15.9
+  },
+  "gpuThroughputMs": 12.88,
+  "present": {
+    "samples": 156,
+    "p50": 13.513,
+    "p95": 16.02,
+    "p99": 16.52,
+    "worst": 17.087,
+    "fps": 74
+  },
+  "warmup": {
+    "frames": 79,
+    "worstMs": 59.4,
+    "simSteps": 62
+  },
+  "shaderCompilesDuringPlay": 0,
+  "programsAtStart": 0,
+  "peakDrawCalls": 393,
+  "peakTriangles": 384424,
+  "heap": {
+    "available": true,
+    "startMB": 116.5,
+    "baselineMB": 81.26,
+    "endMB": 87.95,
+    "growthPct": 8.24,
+    "peakMB": 113.55,
+    "samples": 109
+  },
+  "bootMs": 1861.7,
+  "prewarmMs": 251.9,
+  "errors": [],
+  "gate": {
+    "checks": [
+      {
+        "name": "p95",
+        "actual": 16.02,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "p99",
+        "actual": 16.52,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP95",
+        "actual": 16.02,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP99",
+        "actual": 16.52,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "shaderCompiles",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "consoleErrors",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "heapGrowth",
+        "actual": 8.24,
+        "limit": 25,
+        "unit": "%",
+        "pass": true
+      }
+    ],
+    "pass": true
+  }
+}

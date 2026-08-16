@@ -1,0 +1,179 @@
+{
+  "generatedFrom": "tools/profile/profile.mjs",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x00009A60) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "softwareRasteriser": false,
+  "gates": {
+    "p95Ms": 16.7,
+    "p99Ms": 33,
+    "shaderCompiles": 0,
+    "consoleErrors": 0,
+    "heapGrowthPct": 25
+  },
+  "secondsOverride": 1200,
+  "minutes": 20,
+  "degraded": [],
+  "pass": true,
+  "failed": [],
+  "runs": [
+    {
+      "scenario": "stress-everything",
+      "desc": "Storm, boss, adds, fruit powers and the ship in frame at once, near the island so the streamer is also working. Nothing in the shipped game should ever exceed this.",
+      "seed": "20260814",
+      "width": 1920,
+      "height": 1080,
+      "seconds": 1200,
+      "simSteps": 72000,
+      "status": "ok",
+      "missingSystems": [],
+      "note": "",
+      "frames": 20000,
+      "durationS": 5315.42,
+      "p50": 13.667,
+      "p95": 16.153,
+      "p99": 17.573,
+      "p999": 10.2,
+      "worst": 32.693,
+      "framesOver16_7": 0,
+      "framesOver33": 0,
+      "shaderCompiles": 0,
+      "shaderCompileMs": 0,
+      "hitchCauses": {},
+      "worstHitches": [],
+      "zoneTotalsMs": {
+        "input": 4734.8,
+        "sim": 38258.2,
+        "combat": 10293.3,
+        "physics": 2783.7,
+        "fx": 852.9,
+        "ui": 2479.1,
+        "draw": 668001,
+        "player": 4706.7,
+        "respawn": 106,
+        "fruit": 1557.9,
+        "npc": 6335.9,
+        "ship": 2272.3,
+        "world": 1971.3,
+        "spawn": 464,
+        "weather": 394.6,
+        "quests": 161.6,
+        "gameCamera": 1150.6,
+        "audio": 67.5,
+        "save": 75.2
+      },
+      "memTrend": {
+        "firstMB": 82.16,
+        "lastMB": 101.24,
+        "peakMB": 119.21,
+        "samples": 2948
+      },
+      "cpuOnly": {
+        "p50": 2.6,
+        "p95": 5,
+        "p99": 6.7,
+        "worst": 14.9
+      },
+      "gpuBatch": {
+        "samples": 4193,
+        "p50": 13.667,
+        "p95": 16.153,
+        "p99": 17.573,
+        "worst": 32.693,
+        "fps": 73.2
+      },
+      "gpuSync": "batch",
+      "dynamicRes": {
+        "enabled": true,
+        "scale": 0.85,
+        "minSeen": 0.7,
+        "budgetMs": 15.9
+      },
+      "gpuThroughputMs": 13.69,
+      "present": {
+        "samples": 4193,
+        "p50": 13.667,
+        "p95": 16.153,
+        "p99": 17.573,
+        "worst": 32.693,
+        "fps": 73.2
+      },
+      "warmup": {
+        "frames": 59,
+        "worstMs": 87.3,
+        "simSteps": 57
+      },
+      "shaderCompilesDuringPlay": 0,
+      "programsAtStart": 0,
+      "peakDrawCalls": 427,
+      "peakTriangles": 396146,
+      "heap": {
+        "available": true,
+        "startMB": 116.39,
+        "baselineMB": 82.49,
+        "endMB": 93.12,
+        "growthPct": 12.89,
+        "peakMB": 119.21,
+        "samples": 2948
+      },
+      "bootMs": 2310.3,
+      "prewarmMs": 253.5,
+      "errors": [],
+      "gate": {
+        "checks": [
+          {
+            "name": "p95",
+            "actual": 16.153,
+            "limit": 16.7,
+            "unit": "ms",
+            "pass": true
+          },
+          {
+            "name": "p99",
+            "actual": 17.573,
+            "limit": 33,
+            "unit": "ms",
+            "pass": true
+          },
+          {
+            "name": "presentP95",
+            "actual": 16.153,
+            "limit": 16.7,
+            "unit": "ms",
+            "pass": true
+          },
+          {
+            "name": "presentP99",
+            "actual": 17.573,
+            "limit": 33,
+            "unit": "ms",
+            "pass": true
+          },
+          {
+            "name": "shaderCompiles",
+            "actual": 0,
+            "limit": 0,
+            "unit": "",
+            "pass": true
+          },
+          {
+            "name": "consoleErrors",
+            "actual": 0,
+            "limit": 0,
+            "unit": "",
+            "pass": true
+          },
+          {
+            "name": "heapGrowth",
+            "actual": 12.89,
+            "limit": 25,
+            "unit": "%",
+            "pass": true
+          }
+        ],
+        "pass": true
+      }
+    }
+  ]
+}

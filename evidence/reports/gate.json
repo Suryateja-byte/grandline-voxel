@@ -1,0 +1,81 @@
+{
+  "generatedFrom": "tools/gate.mjs",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "quick": false,
+  "pass": false,
+  "counts": {
+    "pass": 3,
+    "fail": 3,
+    "skip": 0
+  },
+  "failed": [
+    "diff",
+    "profile",
+    "playtest"
+  ],
+  "skipped": [],
+  "gates": [
+    {
+      "id": "determinism",
+      "title": "no Math.random / wall-clock reads in src/",
+      "status": "PASS",
+      "detail": "PASS — 0 violations, 4 waived",
+      "exitCode": 0,
+      "ms": 221,
+      "command": "node tools/lint-determinism.mjs",
+      "evidence": null
+    },
+    {
+      "id": "assets",
+      "title": "no downloaded assets in the shipped tree",
+      "status": "PASS",
+      "detail": "PASS — no downloaded assets in the shipped tree",
+      "exitCode": 0,
+      "ms": 127,
+      "command": "node tools/lint-assets.mjs",
+      "evidence": null
+    },
+    {
+      "id": "capture",
+      "title": "every shot renders bit-identically across two runs",
+      "status": "PASS",
+      "detail": "12 shot(s), bit-identical",
+      "exitCode": 0,
+      "ms": 167418,
+      "command": "node tools/capture/capture.mjs --verify --seed 20260814 --w 1920 --h 1080",
+      "evidence": "evidence/shots/manifest.json"
+    },
+    {
+      "id": "diff",
+      "title": "no pixel drift from the accepted baseline",
+      "status": "FAIL",
+      "detail": "12 shot(s), worst drift 100.0000% (ocean-golden)",
+      "exitCode": 1,
+      "ms": 2917,
+      "command": "node tools/diff/diff.mjs --a evidence/baseline --b evidence/shots --out evidence/diff",
+      "evidence": "evidence/diff/report.json"
+    },
+    {
+      "id": "profile",
+      "title": "frame time, shader compiles and heap on the real GPU",
+      "status": "FAIL",
+      "detail": "7 scenario(s), worst cpu p95 115.92ms",
+      "exitCode": 1,
+      "ms": 278076,
+      "command": "node tools/profile/profile.mjs --seed 20260814 --w 1920 --h 1080",
+      "evidence": "evidence/perf/report.json"
+    },
+    {
+      "id": "playtest",
+      "title": "the game can be finished with a keyboard and a mouse",
+      "status": "FAIL",
+      "detail": "1 passed, 1 failed, 0 skipped",
+      "exitCode": 1,
+      "ms": 248438,
+      "command": "node tools/playtest/playtest.mjs --seed 20260814 --w 1280 --h 720",
+      "evidence": "evidence/reports/playtest.json"
+    }
+  ]
+}

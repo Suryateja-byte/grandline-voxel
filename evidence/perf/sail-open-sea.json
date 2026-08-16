@@ -1,0 +1,157 @@
+{
+  "scenario": "sail-open-sea",
+  "desc": "Full sail across empty ocean. The floor of the frame budget: water, sky and nothing to hide behind. If this is not comfortably under budget, nothing else can be.",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "seconds": 30,
+  "simSteps": 1800,
+  "status": "ok",
+  "missingSystems": [],
+  "note": "",
+  "frames": 4710,
+  "durationS": 133.13,
+  "p50": 14.14,
+  "p95": 16.153,
+  "p99": 17.207,
+  "p999": 9.929,
+  "worst": 22.2,
+  "framesOver16_7": 1,
+  "framesOver33": 0,
+  "shaderCompiles": 0,
+  "shaderCompileMs": 0,
+  "hitchCauses": {},
+  "worstHitches": [],
+  "zoneTotalsMs": {
+    "input": 137.3,
+    "sim": 947.6,
+    "combat": 148.6,
+    "physics": 42.2,
+    "fx": 24.3,
+    "ui": 89.3,
+    "draw": 16437.4,
+    "player": 132,
+    "respawn": 4.9,
+    "fruit": 80.6,
+    "npc": 150.6,
+    "ship": 72.9,
+    "world": 58.1,
+    "spawn": 18.5,
+    "weather": 10.9,
+    "quests": 7.2,
+    "gameCamera": 34.7,
+    "audio": 1.5,
+    "save": 0.8
+  },
+  "memTrend": {
+    "firstMB": 81.33,
+    "lastMB": 88.72,
+    "peakMB": 99.02,
+    "samples": 73
+  },
+  "cpuOnly": {
+    "p50": 2.6,
+    "p95": 5,
+    "p99": 6.8,
+    "worst": 22.2
+  },
+  "gpuBatch": {
+    "samples": 104,
+    "p50": 14.14,
+    "p95": 16.153,
+    "p99": 17.207,
+    "worst": 17.553,
+    "fps": 70.7
+  },
+  "gpuSync": "batch",
+  "dynamicRes": {
+    "enabled": true,
+    "scale": 0.775,
+    "minSeen": 0.725,
+    "budgetMs": 15.9
+  },
+  "gpuThroughputMs": 11.21,
+  "present": {
+    "samples": 104,
+    "p50": 14.14,
+    "p95": 16.153,
+    "p99": 17.207,
+    "worst": 17.553,
+    "fps": 70.7
+  },
+  "warmup": {
+    "frames": 59,
+    "worstMs": 40.5,
+    "simSteps": 37
+  },
+  "shaderCompilesDuringPlay": 0,
+  "programsAtStart": 0,
+  "peakDrawCalls": 287,
+  "peakTriangles": 283134,
+  "heap": {
+    "available": true,
+    "startMB": 116.21,
+    "baselineMB": 81.21,
+    "endMB": 88.2,
+    "growthPct": 8.61,
+    "peakMB": 99.02,
+    "samples": 73
+  },
+  "bootMs": 2654.4,
+  "prewarmMs": 345.2,
+  "errors": [],
+  "gate": {
+    "checks": [
+      {
+        "name": "p95",
+        "actual": 16.153,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "p99",
+        "actual": 17.207,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP95",
+        "actual": 16.153,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP99",
+        "actual": 17.207,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "shaderCompiles",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "consoleErrors",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "heapGrowth",
+        "actual": 8.61,
+        "limit": 25,
+        "unit": "%",
+        "pass": true
+      }
+    ],
+    "pass": true
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "scenario": "dock-and-walk",
+  "desc": "Dock, disembark and walk inland. Exercises the handover from ship physics to character physics and the near-field terrain mesh, where AO and shadow cost peak.",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "seconds": 25,
+  "simSteps": 1500,
+  "status": "ok",
+  "missingSystems": [],
+  "note": "",
+  "frames": 3827,
+  "durationS": 108.92,
+  "p50": 14.073,
+  "p95": 15.82,
+  "p99": 17.147,
+  "p999": 11.122,
+  "worst": 23.5,
+  "framesOver16_7": 1,
+  "framesOver33": 0,
+  "shaderCompiles": 0,
+  "shaderCompileMs": 0,
+  "hitchCauses": {},
+  "worstHitches": [],
+  "zoneTotalsMs": {
+    "input": 137.9,
+    "sim": 886.8,
+    "combat": 146.4,
+    "physics": 41.6,
+    "fx": 24.1,
+    "ui": 75.7,
+    "draw": 13878,
+    "player": 136.7,
+    "respawn": 3.6,
+    "fruit": 64,
+    "npc": 132.4,
+    "ship": 64.4,
+    "world": 64.1,
+    "spawn": 15.7,
+    "weather": 9.9,
+    "quests": 6.3,
+    "gameCamera": 37.9,
+    "audio": 1,
+    "save": 1.1
+  },
+  "memTrend": {
+    "firstMB": 82.73,
+    "lastMB": 109.59,
+    "peakMB": 111.56,
+    "samples": 59
+  },
+  "cpuOnly": {
+    "p50": 2.8,
+    "p95": 5.4,
+    "p99": 7.574,
+    "worst": 23.5
+  },
+  "gpuBatch": {
+    "samples": 85,
+    "p50": 14.073,
+    "p95": 15.82,
+    "p99": 17.147,
+    "worst": 17.76,
+    "fps": 71.1
+  },
+  "gpuSync": "batch",
+  "dynamicRes": {
+    "enabled": true,
+    "scale": 0.8,
+    "minSeen": 0.75,
+    "budgetMs": 15.9
+  },
+  "gpuThroughputMs": 12.44,
+  "present": {
+    "samples": 85,
+    "p50": 14.073,
+    "p95": 15.82,
+    "p99": 17.147,
+    "worst": 17.76,
+    "fps": 71.1
+  },
+  "warmup": {
+    "frames": 59,
+    "worstMs": 54.1,
+    "simSteps": 48
+  },
+  "shaderCompilesDuringPlay": 0,
+  "programsAtStart": 0,
+  "peakDrawCalls": 287,
+  "peakTriangles": 283462,
+  "heap": {
+    "available": true,
+    "startMB": 114.86,
+    "baselineMB": 81.71,
+    "endMB": 88.29,
+    "growthPct": 8.05,
+    "peakMB": 111.56,
+    "samples": 59
+  },
+  "bootMs": 2276.4,
+  "prewarmMs": 252.3,
+  "errors": [],
+  "gate": {
+    "checks": [
+      {
+        "name": "p95",
+        "actual": 15.82,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "p99",
+        "actual": 17.147,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP95",
+        "actual": 15.82,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP99",
+        "actual": 17.147,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "shaderCompiles",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "consoleErrors",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "heapGrowth",
+        "actual": 8.05,
+        "limit": 25,
+        "unit": "%",
+        "pass": true
+      }
+    ],
+    "pass": true
+  }
+}

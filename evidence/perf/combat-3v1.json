@@ -1,0 +1,216 @@
+{
+  "scenario": "combat-3v1",
+  "desc": "Three enemies at once with telegraphs, hitstop, screen shake and impact FX firing together. The frame budget under Hades-grade feedback.",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "seconds": 30,
+  "simSteps": 1800,
+  "status": "ok",
+  "missingSystems": [],
+  "note": "",
+  "frames": 4592,
+  "durationS": 124.72,
+  "p50": 14.273,
+  "p95": 16.607,
+  "p99": 17.487,
+  "p999": 12.791,
+  "worst": 376.2,
+  "framesOver16_7": 3,
+  "framesOver33": 2,
+  "shaderCompiles": 0,
+  "shaderCompileMs": 0,
+  "hitchCauses": {
+    "draw": 2
+  },
+  "worstHitches": [
+    {
+      "frame": 37,
+      "ms": 376.2,
+      "cause": "draw",
+      "causeMs": 374.3,
+      "unaccountedMs": -1.8,
+      "zones": {
+        "input": 0.1,
+        "player": 0.2,
+        "respawn": 0,
+        "fruit": 0.1,
+        "combat": 1,
+        "npc": 0.1,
+        "ship": 0,
+        "world": 0.1,
+        "spawn": 0,
+        "weather": 0,
+        "physics": 0.1,
+        "fx": 0.1,
+        "quests": 0,
+        "gameCamera": 0,
+        "ui": 0.1,
+        "audio": 0,
+        "save": 0,
+        "sim": 1.8,
+        "draw": 374.3
+      }
+    },
+    {
+      "frame": 230,
+      "ms": 43.6,
+      "cause": "draw",
+      "causeMs": 41,
+      "unaccountedMs": -2.1,
+      "zones": {
+        "input": 0.3,
+        "player": 0.7,
+        "respawn": 0,
+        "fruit": 0,
+        "combat": 0.4,
+        "npc": 0.1,
+        "ship": 0.1,
+        "world": 0,
+        "spawn": 0,
+        "weather": 0,
+        "physics": 0.1,
+        "fx": 0.7,
+        "quests": 0,
+        "gameCamera": 0,
+        "ui": 0.1,
+        "audio": 0,
+        "save": 0,
+        "sim": 2.2,
+        "draw": 41
+      }
+    }
+  ],
+  "zoneTotalsMs": {
+    "input": 142,
+    "sim": 1178,
+    "combat": 260.4,
+    "physics": 54.7,
+    "fx": 25.1,
+    "ui": 98,
+    "draw": 17457,
+    "player": 185.8,
+    "respawn": 3.8,
+    "fruit": 59.5,
+    "npc": 183.7,
+    "ship": 78.5,
+    "world": 67,
+    "spawn": 19.6,
+    "weather": 13,
+    "quests": 6.9,
+    "gameCamera": 41.8,
+    "audio": 1.1,
+    "save": 1.8
+  },
+  "memTrend": {
+    "firstMB": 82.69,
+    "lastMB": 96.75,
+    "peakMB": 115.28,
+    "samples": 71
+  },
+  "cpuOnly": {
+    "p50": 2.8,
+    "p95": 5.7,
+    "p99": 7.8,
+    "worst": 376.2
+  },
+  "gpuBatch": {
+    "samples": 102,
+    "p50": 14.273,
+    "p95": 16.607,
+    "p99": 17.487,
+    "worst": 18.72,
+    "fps": 70.1
+  },
+  "gpuSync": "batch",
+  "dynamicRes": {
+    "enabled": true,
+    "scale": 0.775,
+    "minSeen": 0.7,
+    "budgetMs": 15.9
+  },
+  "gpuThroughputMs": 13.41,
+  "present": {
+    "samples": 102,
+    "p50": 14.273,
+    "p95": 16.607,
+    "p99": 17.487,
+    "worst": 18.72,
+    "fps": 70.1
+  },
+  "warmup": {
+    "frames": 59,
+    "worstMs": 59.9,
+    "simSteps": 50
+  },
+  "shaderCompilesDuringPlay": 0,
+  "programsAtStart": 0,
+  "peakDrawCalls": 358,
+  "peakTriangles": 353124,
+  "heap": {
+    "available": true,
+    "startMB": 116.27,
+    "baselineMB": 81.69,
+    "endMB": 86.91,
+    "growthPct": 6.39,
+    "peakMB": 115.28,
+    "samples": 71
+  },
+  "bootMs": 2123.2,
+  "prewarmMs": 237.2,
+  "errors": [],
+  "gate": {
+    "checks": [
+      {
+        "name": "p95",
+        "actual": 16.607,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "p99",
+        "actual": 17.487,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP95",
+        "actual": 16.607,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP99",
+        "actual": 17.487,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "shaderCompiles",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "consoleErrors",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "heapGrowth",
+        "actual": 6.39,
+        "limit": 25,
+        "unit": "%",
+        "pass": true
+      }
+    ],
+    "pass": true
+  }
+}

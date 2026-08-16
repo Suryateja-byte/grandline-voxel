@@ -1,0 +1,157 @@
+{
+  "scenario": "fruit-spam",
+  "desc": "Devil-fruit power held down for the whole run. Particle, trail and distortion FX at their worst case, with nothing else competing — isolates FX cost from combat cost.",
+  "seed": "20260814",
+  "width": 1920,
+  "height": 1080,
+  "seconds": 20,
+  "simSteps": 1200,
+  "status": "ok",
+  "missingSystems": [],
+  "note": "",
+  "frames": 3109,
+  "durationS": 83.23,
+  "p50": 13.813,
+  "p95": 16.46,
+  "p99": 16.667,
+  "p999": 10.635,
+  "worst": 17.247,
+  "framesOver16_7": 0,
+  "framesOver33": 0,
+  "shaderCompiles": 0,
+  "shaderCompileMs": 0,
+  "hitchCauses": {},
+  "worstHitches": [],
+  "zoneTotalsMs": {
+    "input": 92,
+    "sim": 668.8,
+    "combat": 112.5,
+    "physics": 30.5,
+    "fx": 13.6,
+    "ui": 52.6,
+    "draw": 11010.7,
+    "player": 105.7,
+    "respawn": 2.6,
+    "fruit": 45.8,
+    "npc": 108.5,
+    "ship": 57.3,
+    "world": 47.1,
+    "spawn": 10.5,
+    "weather": 5.8,
+    "quests": 3.6,
+    "gameCamera": 21.3,
+    "audio": 1.1,
+    "save": 0.5
+  },
+  "memTrend": {
+    "firstMB": 86.07,
+    "lastMB": 86.22,
+    "peakMB": 108.89,
+    "samples": 48
+  },
+  "cpuOnly": {
+    "p50": 2.7,
+    "p95": 5,
+    "p99": 7.1,
+    "worst": 11.8
+  },
+  "gpuBatch": {
+    "samples": 69,
+    "p50": 13.813,
+    "p95": 16.46,
+    "p99": 16.667,
+    "worst": 17.247,
+    "fps": 72.4
+  },
+  "gpuSync": "batch",
+  "dynamicRes": {
+    "enabled": true,
+    "scale": 0.825,
+    "minSeen": 0.725,
+    "budgetMs": 15.9
+  },
+  "gpuThroughputMs": 14.76,
+  "present": {
+    "samples": 69,
+    "p50": 13.813,
+    "p95": 16.46,
+    "p99": 16.667,
+    "worst": 17.247,
+    "fps": 72.4
+  },
+  "warmup": {
+    "frames": 59,
+    "worstMs": 65.7,
+    "simSteps": 46
+  },
+  "shaderCompilesDuringPlay": 0,
+  "programsAtStart": 0,
+  "peakDrawCalls": 339,
+  "peakTriangles": 329572,
+  "heap": {
+    "available": true,
+    "startMB": 115.89,
+    "baselineMB": 82.54,
+    "endMB": 87.41,
+    "growthPct": 5.9,
+    "peakMB": 108.89,
+    "samples": 48
+  },
+  "bootMs": 2098.9,
+  "prewarmMs": 253.8,
+  "errors": [],
+  "gate": {
+    "checks": [
+      {
+        "name": "p95",
+        "actual": 16.46,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "p99",
+        "actual": 16.667,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP95",
+        "actual": 16.46,
+        "limit": 16.7,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "presentP99",
+        "actual": 16.667,
+        "limit": 33,
+        "unit": "ms",
+        "pass": true
+      },
+      {
+        "name": "shaderCompiles",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "consoleErrors",
+        "actual": 0,
+        "limit": 0,
+        "unit": "",
+        "pass": true
+      },
+      {
+        "name": "heapGrowth",
+        "actual": 5.9,
+        "limit": 25,
+        "unit": "%",
+        "pass": true
+      }
+    ],
+    "pass": true
+  }
+}
